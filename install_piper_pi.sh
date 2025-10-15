@@ -27,21 +27,32 @@ mkdir -p "$TEMP_DIR"
 echo "[+] Directories created"
 
 # Detect architecture
-ARCH=$(uname -m)
-echo ""
-echo "[*] Detected architecture: $ARCH"
+if [ -n "$FORCE_ARCH" ]; then
+    ARCH="$FORCE_ARCH"
+    echo ""
+    echo "[*] Architecture forced to: $ARCH"
+else
+    ARCH=$(uname -m)
+    echo ""
+    echo "[*] Detected architecture: $ARCH"
+fi
 
 if [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
     PIPER_ARCH="aarch64"
-elif [[ "$ARCH" == "armv7l" ]]; then
+    echo "[*] Raspberry Pi 4 (64-bit OS) - using aarch64 build"
+elif [[ "$ARCH" == "armv7l" ]] || [[ "$ARCH" == "armv7" ]]; then
     PIPER_ARCH="armv7l"
+    echo "[*] Raspberry Pi (32-bit OS) - using armv7l build"
 else
     echo "[-] Unsupported architecture: $ARCH"
-    echo "    Raspberry Pi should be aarch64 or armv7l"
+    echo "    Raspberry Pi should be aarch64 (64-bit) or armv7l (32-bit)"
+    echo ""
+    echo "    For Raspberry Pi 4, make sure you're running 64-bit Raspberry Pi OS"
+    echo "    Check with: uname -m"
     exit 1
 fi
 
-echo "[*] Using Piper build for: linux_$PIPER_ARCH"
+echo "[*] Using Piper build for: piper_linux_$PIPER_ARCH.tar.gz"
 
 # URLs
 PIPER_URL="https://github.com/rhasspy/piper/releases/download/$PIPER_VERSION/piper_linux_$PIPER_ARCH.tar.gz"
@@ -52,14 +63,19 @@ VOICE_JSON_URL="$VOICE_URL_BASE/en/en_US/lessac/medium/$MODEL_NAME.onnx.json"
 # Download Piper binary
 echo ""
 echo "[*] Downloading Piper binary for Linux $PIPER_ARCH..."
+echo "    URL: $PIPER_URL"
 PIPER_TAR="$TEMP_DIR/piper.tar.gz"
 
-if curl -L "$PIPER_URL" -o "$PIPER_TAR"; then
+if curl -L --fail --show-error "$PIPER_URL" -o "$PIPER_TAR"; then
     SIZE=$(du -h "$PIPER_TAR" | cut -f1)
     echo "[+] Piper binary downloaded ($SIZE)"
 else
     echo "[-] Failed to download Piper binary"
-    echo "    Manual download: $PIPER_URL"
+    echo "    URL tried: $PIPER_URL"
+    echo ""
+    echo "    If you're on Raspberry Pi 4 with 32-bit OS, try:"
+    echo "    export FORCE_ARCH=armv7l"
+    echo "    Then run this script again"
     exit 1
 fi
 
