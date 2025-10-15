@@ -8,13 +8,25 @@ echo "Starting Pluto setup for Raspberry Pi..."
 # --- 1. System Update and Dependency Installation ---
 echo "Updating package list and installing system dependencies..."
 sudo apt-get update
-sudo apt-get install -y git python3-pip python3-venv portaudio19-dev espeak-ng
+sudo apt-get install -y \
+    git \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    espeak-ng \
+    libespeak-ng1 \
+    curl \
+    build-essential
 
 # Check if installation was successful
 if [ $? -ne 0 ]; then
     echo "Failed to install system dependencies. Please check your internet connection and try again."
     exit 1
 fi
+
+echo "System dependencies installed successfully."
 
 # --- 2. Create Python Virtual Environment ---
 echo "Creating Python virtual environment in '.venv'..."
@@ -59,13 +71,51 @@ fi
 
 echo "Piper TTS installed successfully."
 
-# --- 5. Final Steps ---
+# --- 5. Check for Ollama ---
+echo ""
+echo "Checking for Ollama installation..."
+if command -v ollama &> /dev/null; then
+    echo "✅ Ollama is installed"
+    # Check if the model is installed
+    if ollama list | grep -q "qwen2.5:1.5b"; then
+        echo "✅ Qwen model is installed"
+    else
+        echo "⚠️  Qwen model not found"
+        echo "   Install it with: ollama pull qwen2.5:1.5b-instruct-q4_K_M"
+    fi
+else
+    echo "⚠️  Ollama is NOT installed"
+    echo ""
+    echo "   To install Ollama, run:"
+    echo "   curl -fsSL https://ollama.com/install.sh | sh"
+    echo "   ollama pull qwen2.5:1.5b-instruct-q4_K_M"
+    echo ""
+fi
+
+# --- 6. Final Steps ---
 deactivate
-echo "-------------------------------------------------"
-echo "✅ Pluto setup complete!"
-echo "-------------------------------------------------"
-echo "To run the assistant, follow these steps:"
-echo "1. Activate the virtual environment: source .venv/bin/activate"
-echo "2. Run the main application: python run.py"
-echo "-------------------------------------------------"
+echo ""
+echo "================================================================="
+echo "✅ PLUTO VOICE ASSISTANT SETUP COMPLETE!"
+echo "================================================================="
+echo ""
+echo "📋 What was installed:"
+echo "   ✅ System dependencies (Python, PortAudio, espeak-ng)"
+echo "   ✅ Python virtual environment (.venv)"
+echo "   ✅ Python packages (Whisper, PyAudio, etc.)"
+echo "   ✅ Piper TTS (ARM64 version)"
+echo "   ✅ Voice model (en_US-lessac-medium)"
+echo ""
+echo "🚀 To run Pluto:"
+echo "   1. Make sure Ollama is running (in another terminal):"
+echo "      ollama serve"
+echo ""
+echo "   2. Activate the virtual environment:"
+echo "      source .venv/bin/activate"
+echo ""
+echo "   3. Start Pluto:"
+echo "      python run.py"
+echo ""
+echo "================================================================="
+echo ""
 
