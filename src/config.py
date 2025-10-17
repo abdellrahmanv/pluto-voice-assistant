@@ -74,7 +74,7 @@ WHISPER_CONFIG = {
 # Ollama/Qwen2.5 LLM
 OLLAMA_CONFIG = {
     "host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-    "model": os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b-instruct-q4_K_M"),
+    "model": os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b-instruct-q4_K_M"),
     "timeout": 30.0,  # seconds
     "temperature": 0.7,
     "top_p": 0.9,

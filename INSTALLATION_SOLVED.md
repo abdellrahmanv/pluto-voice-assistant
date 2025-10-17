@@ -63,7 +63,7 @@ Extract piper.exe and add to PATH
 #### D) Qwen2.5 LLM Model
 ```powershell
 # Install Ollama: https://ollama.ai/download
-ollama pull qwen2.5:1.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_K_M
 ```
 
 ### 2. Run Pre-Flight Check

@@ -126,7 +126,7 @@ Energy-based VAD is lightweight and sufficient for controlled environments. More
 - Queue responses for TTS
 
 **Key Parameters**:
-- **Model**: `qwen2.5:1.5b-instruct-q4_K_M` (quantized for speed)
+- **Model**: `qwen2.5:0.5b-instruct-q4_K_M` (quantized for speed)
 - **Temperature**: 0.7 (balanced creativity)
 - **Max Tokens**: 100 (concise responses)
 - **Timeout**: 30 seconds

@@ -45,10 +45,10 @@ curl -fsSL https://ollama.com/install.sh | sh
 Then download the Qwen model:
 
 ```bash
-ollama pull qwen2.5:1.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_K_M
 ```
 
-**Estimated time:** 5-10 minutes
+**Estimated time:** 3-5 minutes
 
 ### 4. Run Pluto!
 
@@ -81,7 +81,7 @@ python run.py
 
 🤖 Models:
   Whisper: tiny (39M params, ~1GB RAM, ~1s latency, good accuracy)
-  Ollama: qwen2.5:1.5b-instruct-q4_K_M
+  Ollama: qwen2.5:0.5b-instruct-q4_K_M
   Piper:  /home/pi/pluto-voice-assistant/models/en_US-lessac-medium.onnx
 
 ======================================================================
