@@ -54,17 +54,18 @@ class VisionWorker:
         
         print("🎥 Vision Worker initialized")
         
-    def start(self):
+    def start(self) -> bool:
         """Start the vision worker thread"""
         if self.running:
             print("⚠️  Vision worker already running")
-            return
-            
+            return False
+
         self.running = True
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
         print("✅ Vision Worker thread started")
-        
+        return True
+
     def stop(self):
         """Stop the vision worker"""
         print("🛑 Stopping Vision Worker...")
