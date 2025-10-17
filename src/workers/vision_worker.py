@@ -77,10 +77,38 @@ class VisionWorker:
         except:
             pass
 
-        # Stop camera
+        # Stop camera with proper cleanup (prevents "failed to acquire camera" error)
         if self.camera_process:
-            self.camera_process.terminate()
-            self.camera_process.wait()
+            try:
+                import signal
+                import os
+                
+                # Try graceful shutdown first (SIGTERM to process group)
+                try:
+                    pgid = os.getpgid(self.camera_process.pid)
+                    os.killpg(pgid, signal.SIGTERM)
+                    print("   📡 Sent SIGTERM to camera process group")
+                except:
+                    self.camera_process.terminate()
+                    print("   📡 Sent SIGTERM to camera process")
+                
+                # Wait up to 2 seconds for graceful shutdown
+                try:
+                    self.camera_process.wait(timeout=2)
+                    print("   ✅ Camera stopped gracefully")
+                except subprocess.TimeoutExpired:
+                    # Force kill if still running (SIGKILL to process group)
+                    print("   ⚠️  Camera didn't stop, forcing...")
+                    try:
+                        pgid = os.getpgid(self.camera_process.pid)
+                        os.killpg(pgid, signal.SIGKILL)
+                    except:
+                        self.camera_process.kill()
+                    
+                    self.camera_process.wait()
+                    print("   ✅ Camera force-stopped")
+            except Exception as e:
+                print(f"   ⚠️  Camera cleanup warning: {e}")
 
         if self.thread:
             self.thread.join(timeout=5)
@@ -145,20 +173,23 @@ class VisionWorker:
             
             print(f"📷 Starting Raspberry Pi camera...")
             print(f"   Command: {' '.join(cmd)}")
-            
+
+            # Start camera in its own process group for proper cleanup
+            import os
             self.camera_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
-                bufsize=width * height * 3 // 2  # YUV420 buffer size
+                bufsize=width * height * 3 // 2,  # YUV420 buffer size
+                preexec_fn=os.setsid  # Create new process group
             )
-            
+
             # Wait for camera to initialize
             time.sleep(2)
-            
+
             print("✅ Camera started")
             return True
-            
+
         except FileNotFoundError:
             print("❌ rpicam-vid not found. Install with: sudo apt-get install rpicam-apps")
             return False
