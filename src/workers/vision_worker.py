@@ -83,45 +83,38 @@ class VisionWorker:
                 import signal
                 import os
                 
-                # Try graceful shutdown first (SIGTERM to process group)
+                print("   🛑 Stopping camera...")
+                
+                # Immediate force kill - don't wait for graceful shutdown
                 try:
                     pgid = os.getpgid(self.camera_process.pid)
-                    os.killpg(pgid, signal.SIGTERM)
-                    print("   📡 Sent SIGTERM to camera process group")
-                except:
-                    self.camera_process.terminate()
-                    print("   📡 Sent SIGTERM to camera process")
+                    os.killpg(pgid, signal.SIGKILL)  # Use SIGKILL immediately
+                    print("   📡 Sent SIGKILL to camera process group")
+                except Exception as e:
+                    # Fallback to direct kill
+                    self.camera_process.kill()
+                    print(f"   📡 Sent SIGKILL to camera process")
                 
-                # Wait up to 2 seconds for graceful shutdown
+                # Short wait (0.5s max)
                 try:
-                    self.camera_process.wait(timeout=2)
-                    print("   ✅ Camera stopped gracefully")
+                    self.camera_process.wait(timeout=0.5)
+                    print("   ✅ Camera stopped")
                 except subprocess.TimeoutExpired:
-                    # Force kill if still running (SIGKILL to process group)
-                    print("   ⚠️  Camera didn't stop, forcing...")
-                    try:
-                        pgid = os.getpgid(self.camera_process.pid)
-                        os.killpg(pgid, signal.SIGKILL)
-                    except:
-                        self.camera_process.kill()
+                    print("   ⚠️  Camera process stubborn")
+                    pass  # Continue anyway
                     
-                    self.camera_process.wait()
-                    print("   ✅ Camera force-stopped")
-                    
-                # Extra cleanup: kill any remaining rpicam processes
-                try:
-                    subprocess.run(['pkill', '-9', 'rpicam-vid'], 
-                                 stderr=subprocess.DEVNULL, timeout=1)
-                    print("   🧹 Cleaned up any remaining camera processes")
-                except:
-                    pass
-                    
+                # Nuclear cleanup: kill ALL rpicam processes (non-blocking)
+                subprocess.Popen(['pkill', '-9', 'rpicam'], 
+                               stderr=subprocess.DEVNULL,
+                               stdout=subprocess.DEVNULL)
+                               
             except Exception as e:
-                print(f"   ⚠️  Camera cleanup warning: {e}")
-                # Final fallback: nuclear option
+                print(f"   ⚠️  Camera cleanup: {e}")
+                # Last resort
                 try:
-                    subprocess.run(['pkill', '-9', 'rpicam'], 
-                                 stderr=subprocess.DEVNULL, timeout=1)
+                    subprocess.Popen(['pkill', '-9', 'rpicam'], 
+                                   stderr=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL)
                 except:
                     pass
 
