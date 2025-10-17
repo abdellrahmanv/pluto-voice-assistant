@@ -104,14 +104,23 @@ class LLMWorker:
         print("✅ LLM Worker stopped")
     
     def _process_queue(self):
-        """Main queue processing loop"""
+        """Main queue processing loop
+        
+        Processes transcripts from STT worker or vision-triggered greetings.
+        Vision-triggered messages have 'source': 'vision_trigger' in metadata.
+        """
         while self.running:
             try:
                 task = self.input_queue.get(timeout=QUEUE_CONFIG["get_timeout"])
                 
                 if task['type'] == 'transcript':
                     user_text = task['text']
-                    print(f"   🤔 Thinking about: \"{user_text}\"")
+                    source = task.get('source', 'stt')
+                    
+                    if source == 'vision_trigger':
+                        print(f"   👁️ Vision-triggered greeting: \"{user_text}\"")
+                    else:
+                        print(f"   🤔 Thinking about: \"{user_text}\"")
                     
                     start_time = time.time()
                     response_text = self._generate(user_text)
