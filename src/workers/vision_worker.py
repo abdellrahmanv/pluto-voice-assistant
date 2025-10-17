@@ -70,17 +70,23 @@ class VisionWorker:
         """Stop the vision worker"""
         print("🛑 Stopping Vision Worker...")
         self.running = False
-        
+
+        # Close preview window
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass
+
         # Stop camera
         if self.camera_process:
             self.camera_process.terminate()
             self.camera_process.wait()
-            
+
         if self.thread:
             self.thread.join(timeout=5)
-            
+
         print("✅ Vision Worker stopped")
-        
+
     def _load_detector(self) -> bool:
         """Load YuNet face detection model"""
         try:
@@ -329,6 +335,60 @@ class VisionWorker:
                 
         return event
         
+    def _show_preview(self, frame: np.ndarray, faces: List[Dict], state: str):
+        """
+        Show preview window with face detection boxes (works with VNC)
+        
+        Args:
+            frame: Current camera frame
+            faces: List of detected faces with bounding boxes
+            state: Current vision state (idle, face_locked, etc.)
+        """
+        if not VISION_CONFIG.get('show_preview', False):
+            return
+        
+        # Clone frame to draw on
+        display_frame = frame.copy()
+        
+        # Draw faces
+        if VISION_CONFIG.get('draw_boxes', True):
+            for face in faces:
+                bbox = face['bbox']
+                x, y, w, h = bbox
+                confidence = face['confidence']
+                
+                # Color: Green for locked face, Blue for others
+                is_locked = (self.locked_face_id is not None and 
+                            face.get('id') == self.locked_face_id)
+                color = (0, 255, 0) if is_locked else (255, 0, 0)  # BGR
+                thickness = 3 if is_locked else 2
+                
+                # Draw rectangle
+                cv2.rectangle(display_frame, (x, y), (x+w, y+h), color, thickness)
+                
+                # Draw label
+                if VISION_CONFIG.get('draw_labels', True):
+                    if is_locked:
+                        label = f"LOCKED {confidence:.2f}"
+                    else:
+                        label = f"Face {confidence:.2f}"
+                    
+                    # Background for text
+                    (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                    cv2.rectangle(display_frame, (x, y-25), (x+text_w+5, y), color, -1)
+                    cv2.putText(display_frame, label, (x+3, y-8), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        
+        # Draw status info at top
+        status_text = f"State: {state} | Faces: {len(faces)} | FPS: {self.fps:.1f}"
+        cv2.putText(display_frame, status_text, (10, 30), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        
+        # Show in window
+        window_name = VISION_CONFIG.get('preview_window_name', 'Pluto Vision')
+        cv2.imshow(window_name, display_frame)
+        cv2.waitKey(1)  # Required for window to update
+
     def _run(self):
         """Main vision worker loop"""
         print("🎥 Vision Worker running...")
@@ -381,14 +441,15 @@ class VisionWorker:
                 
                 # Track and lock faces
                 event = self._track_and_lock_face(detected_faces)
-                
+
+                # Show preview window (VNC/GUI)
+                self._show_preview(frame, detected_faces, event['state'])
+
                 # Send event to orchestrator
                 try:
                     self.output_queue.put_nowait(event)
                 except queue.Full:
-                    pass  # Skip if queue is full
-                    
-                # Calculate FPS
+                    pass  # Skip if queue is full                # Calculate FPS
                 if frame_count % 30 == 0:
                     elapsed = time.time() - start_time
                     self.fps = 30 / elapsed if elapsed > 0 else 0
