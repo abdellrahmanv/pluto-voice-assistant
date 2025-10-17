@@ -137,6 +137,13 @@ VISION_CONFIG = {
     "greeting_enabled": True,  # Auto-greet on new face
     "greeting_cooldown": 10.0,  # Seconds before greeting same face again
     "greeting_message": "Hi there! How can I help you today?",
+    
+    # Display settings (for debugging/demo)
+    "show_preview": True,  # Show live camera window with face detection
+    "preview_window_name": "Pluto Vision - Face Detection",
+    "draw_boxes": True,  # Draw bounding boxes around faces
+    "draw_labels": True,  # Show labels (ID, confidence, status)
+    "preview_fps_display": True,  # Show FPS counter
 }
 
 # ============================================================================
