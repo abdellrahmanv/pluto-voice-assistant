@@ -15,10 +15,11 @@ if __name__ == "__main__":
     print("""
     ╔═══════════════════════════════════════════════════════════════════╗
     ║                     🪐 PROJECT PLUTO 🪐                          ║
-    ║            Offline Voice Assistant Test Architecture             ║
+    ║         Vision-Driven Reflex Agent Voice Assistant               ║
     ║                                                                   ║
-    ║  Pipeline: Vosk (STT) → Qwen2.5 (LLM) → Piper (TTS)             ║
-    ║  Purpose: Validate integration logic and measure performance     ║
+    ║  Pipeline: Vision → STT → LLM → TTS                              ║
+    ║  Behavior: Detects faces, initiates conversation, stays focused  ║
+    ║  Models: YuNet + Whisper + Qwen2.5 + Piper                       ║
     ╚═══════════════════════════════════════════════════════════════════╝
     """)
     

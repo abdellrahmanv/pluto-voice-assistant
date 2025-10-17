@@ -29,6 +29,7 @@ class STTWorker:
         self.metrics = metrics
         
         self.running = False
+        self.paused = True  # Start paused (vision-driven activation)
         self.thread = None
         self.warmup_complete = False
         
@@ -141,9 +142,29 @@ class STTWorker:
         
         print("✅ STT Worker stopped")
     
+    def pause(self):
+        """Pause listening (vision-driven)"""
+        if not self.paused:
+            self.paused = True
+            print("⏸️  STT paused (no face detected)")
+    
+    def resume(self):
+        """Resume listening (vision-driven)"""
+        if self.paused:
+            self.paused = False
+            print("▶️  STT resumed (face locked)")
+    
+    def is_paused(self) -> bool:
+        """Check if STT is paused"""
+        return self.paused
+    
     def _listen_loop(self):
         """Main listening loop"""
         while self.running:
+            # Skip processing if paused (vision-driven activation)
+            if self.paused:
+                time.sleep(0.1)
+                continue
             try:
                 # Detect speech and record
                 audio_data = self._record_speech()

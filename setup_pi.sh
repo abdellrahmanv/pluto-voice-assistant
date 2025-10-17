@@ -18,7 +18,12 @@ sudo apt-get install -y \
     espeak-ng \
     libespeak-ng1 \
     curl \
-    build-essential
+    build-essential \
+    rpicam-apps \
+    libcamera-apps \
+    libcamera-dev \
+    libopencv-dev \
+    python3-opencv
 
 # Check if installation was successful
 if [ $? -ne 0 ]; then
@@ -27,6 +32,19 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "System dependencies installed successfully."
+
+# --- 1b. Test Camera ---
+echo ""
+echo "Testing Raspberry Pi camera..."
+if command -v rpicam-hello &> /dev/null; then
+    echo "✅ rpicam-apps installed"
+    echo "   Testing camera (2 second preview)..."
+    timeout 2s rpicam-hello --timeout 2000 &>/dev/null || true
+    echo "   If you saw a camera preview, camera is working!"
+else
+    echo "⚠️  rpicam-apps not found (camera may not work)"
+fi
+echo ""
 
 # --- 2. Create Python Virtual Environment ---
 echo "Creating Python virtual environment in '.venv'..."
@@ -71,7 +89,18 @@ fi
 
 echo "Piper TTS installed successfully."
 
-# --- 5. Check for Ollama ---
+# --- 5. Download YuNet Face Detection Model ---
+echo "Downloading YuNet face detection model..."
+python download_yunet_model.py
+
+# Check if model was downloaded
+if [ ! -f "./models/face_detection_yunet_2023mar_int8bq.onnx" ]; then
+    echo "⚠️  YuNet model download failed (vision features will be disabled)"
+else
+    echo "✅ YuNet model downloaded successfully"
+fi
+
+# --- 6. Check for Ollama ---
 echo ""
 echo "Checking for Ollama installation..."
 if command -v ollama &> /dev/null; then
@@ -92,7 +121,7 @@ else
     echo ""
 fi
 
-# --- 6. Final Steps ---
+# --- 7. Final Steps ---
 deactivate
 echo ""
 echo "================================================================="
@@ -100,11 +129,13 @@ echo "✅ PLUTO VOICE ASSISTANT SETUP COMPLETE!"
 echo "================================================================="
 echo ""
 echo "📋 What was installed:"
-echo "   ✅ System dependencies (Python, PortAudio, espeak-ng)"
+echo "   ✅ System dependencies (Python, PortAudio, espeak-ng, rpicam)"
 echo "   ✅ Python virtual environment (.venv)"
-echo "   ✅ Python packages (Whisper, PyAudio, etc.)"
+echo "   ✅ Python packages (Whisper, PyAudio, OpenCV, etc.)"
 echo "   ✅ Piper TTS (ARM64 version)"
 echo "   ✅ Voice model (en_US-lessac-medium)"
+echo "   ✅ YuNet face detection model (INT8)"
+echo "   ✅ Raspberry Pi camera support"
 echo ""
 echo "🚀 To run Pluto:"
 echo "   1. Make sure Ollama is running (in another terminal):"

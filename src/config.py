@@ -102,6 +102,43 @@ PIPER_CONFIG = {
     "sample_rate": 22050,
 }
 
+# Vision/Face Detection (YuNet)
+VISION_CONFIG = {
+    # Model settings
+    "model_path": str(MODELS_DIR / "face_detection_yunet_2023mar_int8bq.onnx"),
+    "backend": "opencv",  # OpenCV DNN backend
+    "target": "cpu",  # CPU target for Raspberry Pi
+    
+    # Camera settings (Raspberry Pi camera via rpicam)
+    "camera_type": "rpicam",  # rpicam, usb, or picamera
+    "frame_width": 320,  # Resolution width
+    "frame_height": 240,  # Resolution height
+    "camera_fps": 10,  # Target FPS (low for efficiency)
+    "frame_skip": 2,  # Process every Nth frame (1=every frame, 2=every other frame)
+    
+    # Detection settings
+    "confidence_threshold": 0.6,  # Minimum confidence for face detection
+    "nms_threshold": 0.3,  # Non-maximum suppression threshold
+    "max_faces": 5,  # Maximum faces to detect per frame
+    "min_face_size": 40,  # Minimum face size in pixels
+    "max_face_size": 300,  # Maximum face size in pixels
+    
+    # Tracking settings
+    "lock_threshold_frames": 3,  # Frames needed before locking onto face
+    "face_lost_timeout_frames": 15,  # Frames before unlocking (1.5s at 10fps)
+    "tracking_distance_threshold": 100,  # Max pixel distance to track same face
+    
+    # Resource management
+    "num_threads": 2,  # OpenCV threads (keep low on Pi)
+    "priority": 10,  # Process nice value (higher = lower priority)
+    "cpu_affinity": [0, 1],  # CPU cores to use (0-indexed)
+    
+    # Greeting behavior
+    "greeting_enabled": True,  # Auto-greet on new face
+    "greeting_cooldown": 10.0,  # Seconds before greeting same face again
+    "greeting_message": "Hi there! How can I help you today?",
+}
+
 # ============================================================================
 # QUEUE CONFIGURATION
 # ============================================================================
@@ -199,6 +236,7 @@ def get_config(section: str) -> Dict[str, Any]:
         "whisper": WHISPER_CONFIG,
         "ollama": OLLAMA_CONFIG,
         "piper": PIPER_CONFIG,
+        "vision": VISION_CONFIG,
         "queue": QUEUE_CONFIG,
         "worker": WORKER_CONFIG,
         "metrics": METRICS_CONFIG,
@@ -211,12 +249,17 @@ def get_config(section: str) -> Dict[str, Any]:
 def validate_config() -> bool:
     """Validate configuration settings"""
     errors = []
+    warnings = []
     
     # Whisper model will be downloaded automatically on first use
     # No need to check for model path
     
     if not Path(PIPER_CONFIG["model_path"]).exists():
         errors.append(f"Piper model not found: {PIPER_CONFIG['model_path']}")
+    
+    # Vision model check (warning only - can run without vision)
+    if not Path(VISION_CONFIG["model_path"]).exists():
+        warnings.append(f"YuNet model not found: {VISION_CONFIG['model_path']} (Run: python download_yunet_model.py)")
     
     # Whisper works with 16kHz audio (same as Vosk)
     if AUDIO_CONFIG["sample_rate"] != 16000:
@@ -226,6 +269,11 @@ def validate_config() -> bool:
         print("⚠️  Configuration Errors:")
         for error in errors:
             print(f"  - {error}")
+            
+    if warnings:
+        print("⚠️  Configuration Warnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
         return False
     
     return True
@@ -250,6 +298,7 @@ def print_config_summary():
     print(f"  Whisper: {WHISPER_CONFIG['model_size']} ({WHISPER_CONFIG['model_info'][WHISPER_CONFIG['model_size']]})")
     print(f"  Ollama: {OLLAMA_CONFIG['model']}")
     print(f"  Piper:  {PIPER_CONFIG['model_path']}")
+    print(f"  YuNet:  {VISION_CONFIG['frame_width']}x{VISION_CONFIG['frame_height']} @ {VISION_CONFIG['camera_fps']}fps")
     
     print("\n" + "="*70 + "\n")
 

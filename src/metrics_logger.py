@@ -95,7 +95,7 @@ class MetricsLogger:
             ])
     
     def _console_output(self, metric: PerformanceMetric):
-        icon_map = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'system': '💻', 'total': '⏱️'}
+        icon_map = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'vision': '👁️', 'system': '💻', 'total': '⏱️'}
         icon = icon_map.get(metric.component, '📊')
         
         if metric.metric_type == 'latency':
@@ -131,6 +131,19 @@ class MetricsLogger:
     
     def log_error(self, component: str, error_type: str, details: str):
         self.log_metric(component, 'error', 1, 'count', {'error_type': error_type, 'details': details})
+    
+    def log_vision_detection(self, fps: float, faces_detected: int, face_locked: bool):
+        """Log vision detection metrics"""
+        self.log_metric('vision', 'fps', fps, 'fps')
+        self.log_metric('vision', 'faces_detected', faces_detected, 'count')
+        self.log_metric('vision', 'face_locked', 1 if face_locked else 0, 'bool')
+    
+    def log_vision_event(self, event_type: str, face_id: Optional[float] = None):
+        """Log vision events (face_locked, face_lost, etc)"""
+        metadata = {}
+        if face_id is not None:
+            metadata['face_id'] = face_id
+        self.log_metric('vision', f'event_{event_type}', 1, 'event', metadata=metadata)
     
     def get_statistics(self) -> Dict[str, Any]:
         stats_summary = {}
@@ -169,6 +182,10 @@ class MetricsLogger:
                 icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}[comp]
                 print(f"\n{icon} {comp.upper()} Latency:")
                 print(f"   Mean: {s['mean']:.0f}ms | Min: {s['min']:.0f}ms | Max: {s['max']:.0f}ms")
+        
+        if 'vision' in stats and 'fps' in stats['vision']:
+            fps_s = stats['vision']['fps']
+            print(f"\n👁️  Vision FPS: Mean: {fps_s['mean']:.1f} | Min: {fps_s['min']:.1f} | Max: {fps_s['max']:.1f}")
         
         if 'system' in stats and 'memory' in stats['system']:
             mem = stats['system']['memory']
