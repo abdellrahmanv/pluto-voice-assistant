@@ -55,7 +55,7 @@
 2. **Install Ollama (ARM64):**
    ```bash
    curl -fsSL https://ollama.com/install.sh | sh
-   ollama pull qwen2.5:0.5b-instruct-q4_K_M
+   ollama pull qwen2.5:0.5b-instruct-q4_k_M
    ```
 
 3. **Install Piper (ARM64):**

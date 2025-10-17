@@ -132,7 +132,7 @@ class TestWorkerMocks:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            'models': [{'name': 'qwen2.5:1.5b-instruct-q4_K_M'}]
+            'models': [{'name': 'qwen2.5:1.5b-instruct-q4_k_M'}]
         }
         mock_get.return_value = mock_response
         

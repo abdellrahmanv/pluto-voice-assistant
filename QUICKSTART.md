@@ -46,7 +46,7 @@ mkdir models
 ### Qwen2.5 LLM Model
 ```powershell
 # Pull model with Ollama
-ollama pull qwen2.5:0.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_k_M
 ```
 
 ## 🎯 3. Configure Paths
@@ -128,7 +128,7 @@ Press `Ctrl+C` to gracefully shutdown:
 ### "Cannot connect to Ollama"
 - Start Ollama server: `ollama serve`
 - Check it's running on `http://localhost:11434`
-- Pull model: `ollama pull qwen2.5:0.5b-instruct-q4_K_M`
+- Pull model: `ollama pull qwen2.5:0.5b-instruct-q4_k_M`
 
 ### "Piper binary not found"
 - Download from https://github.com/rhasspy/piper/releases

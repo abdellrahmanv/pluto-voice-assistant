@@ -115,11 +115,11 @@ mkdir models
 ollama serve
 
 # In new terminal, pull model
-ollama pull qwen2.5:0.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_k_M
 
 # Verify
 ollama list
-# Should show: qwen2.5:0.5b-instruct-q4_K_M
+# Should show: qwen2.5:0.5b-instruct-q4_k_M
 ```
 
 ### Step 5: Verify Installation
@@ -175,7 +175,7 @@ VOSK_CONFIG = {
 ```python
 OLLAMA_CONFIG = {
     "host": "http://localhost:11434",
-    "model": "qwen2.5:0.5b-instruct-q4_K_M",
+    "model": "qwen2.5:0.5b-instruct-q4_k_M",
     "temperature": 0.7,         # 0=deterministic, 1=creative
     "max_tokens": 100,          # Response length (shorter=faster)
     "timeout": 30,              # Seconds before giving up
@@ -872,7 +872,7 @@ print(f"Mean LLM latency: {data['statistics']['llm']['latency']['mean']}")
 **Option A**: Use smaller model
 ```python
 OLLAMA_CONFIG = {
-    "model": "qwen2.5:0.5b-instruct-q4_K_M",  # Faster, less capable
+    "model": "qwen2.5:0.5b-instruct-q4_k_M",  # Faster, less capable
     ...
 }
 ```
@@ -988,16 +988,16 @@ QUEUE_CONFIG = {
 
 ---
 
-#### "Model qwen2.5:0.5b-instruct-q4_K_M not found"
+#### "Model qwen2.5:0.5b-instruct-q4_k_M not found"
 
 **Symptoms**:
 ```
-⚠️  Model 'qwen2.5:0.5b-instruct-q4_K_M' not found
+⚠️  Model 'qwen2.5:0.5b-instruct-q4_k_M' not found
 ```
 
 **Solution**:
 ```powershell
-ollama pull qwen2.5:0.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_k_M
 
 # Verify
 ollama list
@@ -1060,12 +1060,12 @@ ollama list
 **Solutions**:
 1. **Use smaller model**:
    ```powershell
-   ollama pull qwen2.5:0.5b-instruct-q4_K_M
+   ollama pull qwen2.5:0.5b-instruct-q4_k_M
    ```
    Update `src/config.py`:
    ```python
    OLLAMA_CONFIG = {
-       "model": "qwen2.5:0.5b-instruct-q4_K_M",
+       "model": "qwen2.5:0.5b-instruct-q4_k_M",
        ...
    }
    ```

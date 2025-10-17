@@ -224,7 +224,7 @@ Test-Path "models\vosk-model-small-en-us-0.15\am\final.mdl"
 # Check Ollama is running
 ollama list
 
-# Should show: qwen2.5:0.5b-instruct-q4_K_M
+# Should show: qwen2.5:0.5b-instruct-q4_k_M
 
 # Start server if not running
 ollama serve

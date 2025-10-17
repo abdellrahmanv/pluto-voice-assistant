@@ -76,11 +76,11 @@ piper --version
 ollama serve
 
 # Pull the model (in another terminal):
-ollama pull qwen2.5:0.5b-instruct-q4_K_M
+ollama pull qwen2.5:0.5b-instruct-q4_k_M
 
 # Verify:
 ollama list
-# Should show: qwen2.5:0.5b-instruct-q4_K_M
+# Should show: qwen2.5:0.5b-instruct-q4_k_M
 ```
 
 ### Step 4: Verify Configuration
@@ -358,7 +358,7 @@ Before running, ensure:
 ⚙️  Configuration Summary:
    Vosk Model: vosk-model-small-en-us-0.15
    Piper Model: en_US-lessac-medium.onnx
-   Ollama Model: qwen2.5:0.5b-instruct-q4_K_M
+   Ollama Model: qwen2.5:0.5b-instruct-q4_k_M
    Sample Rate: 16000 Hz
    Queue Size: 10
    Metrics: CSV=True, JSON=True
@@ -372,7 +372,7 @@ Before running, ensure:
 
 🧠 LLM Worker initializing...
    Checking Ollama server at: http://localhost:11434
-   Model 'qwen2.5:0.5b-instruct-q4_K_M' ready
+   Model 'qwen2.5:0.5b-instruct-q4_k_M' ready
 ✅ LLM Worker initialized
    LLM warmup: Running test inference...
    LLM warmup complete: 650ms

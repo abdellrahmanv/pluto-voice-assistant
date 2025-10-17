@@ -381,7 +381,7 @@ OPTIMIZATION PRIORITIES:
 
 Download locations:
 • Vosk: https://alphacephei.com/vosk/models
-• Ollama: ollama pull qwen2.5:0.5b-instruct-q4_K_M
+• Ollama: ollama pull qwen2.5:0.5b-instruct-q4_k_M
 • Piper: https://github.com/rhasspy/piper/releases
 ```
 

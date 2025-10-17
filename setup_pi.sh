@@ -81,14 +81,14 @@ if command -v ollama &> /dev/null; then
         echo "✅ Qwen model is installed"
     else
         echo "⚠️  Qwen model not found"
-        echo "   Install it with: ollama pull qwen2.5:0.5b-instruct-q4_K_M"
+        echo "   Install it with: ollama pull qwen2.5:0.5b-instruct-q4_k_M"
     fi
 else
     echo "⚠️  Ollama is NOT installed"
     echo ""
     echo "   To install Ollama, run:"
     echo "   curl -fsSL https://ollama.com/install.sh | sh"
-    echo "   ollama pull qwen2.5:0.5b-instruct-q4_K_M"
+    echo "   ollama pull qwen2.5:0.5b-instruct-q4_k_M"
     echo ""
 fi
 

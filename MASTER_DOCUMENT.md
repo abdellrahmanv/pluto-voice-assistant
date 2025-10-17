@@ -292,7 +292,7 @@ pytest>=7.4.0         # Testing framework
 **Ollama Server**:
 - Endpoint: `http://localhost:11434`
 - API: `/api/generate` for inference
-- Model: `qwen2.5:0.5b-instruct-q4_K_M`
+- Model: `qwen2.5:0.5b-instruct-q4_k_M`
 
 ### File Formats
 
@@ -460,7 +460,7 @@ VOSK_CONFIG = {
 
 OLLAMA_CONFIG = {
     "host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-    "model": os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b-instruct-q4_K_M"),
+    "model": os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b-instruct-q4_k_M"),
     "temperature": 0.7,              # 0=deterministic, 1=creative
     "max_tokens": 100,               # Response length (shorter = faster)
     "timeout": 30,                   # Seconds before giving up
