@@ -97,7 +97,13 @@ class PlutoOrchestrator:
         if not self.tts_worker.start():
             print("❌ TTS Worker failed to start")
             all_ok = False
-        
+
+        # Start vision worker if enabled
+        if self.enable_vision and self.vision_worker:
+            if not self.vision_worker.start():
+                print("❌ Vision Worker failed to start")
+                all_ok = False
+
         if all_ok:
             print("\n✅ All workers initialized successfully\n")
         else:
