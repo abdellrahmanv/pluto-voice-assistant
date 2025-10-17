@@ -547,21 +547,30 @@ class PlutoOrchestrator:
             report_lines.append("## 📈 Performance Metrics\n\n")
             report_lines.append("### Latency Statistics\n\n")
             
-            if self.metrics.stt_latencies:
-                avg_stt = sum(self.metrics.stt_latencies) / len(self.metrics.stt_latencies)
-                report_lines.append(f"- **STT Avg:** {avg_stt:.1f}ms ({len(self.metrics.stt_latencies)} samples)\n")
+            # Access stats from metrics.stats dictionary
+            if 'stt' in self.metrics.stats and 'latency' in self.metrics.stats['stt']:
+                latencies = self.metrics.stats['stt']['latency']
+                if latencies:
+                    avg_stt = sum(latencies) / len(latencies)
+                    report_lines.append(f"- **STT Avg:** {avg_stt:.1f}ms ({len(latencies)} samples)\n")
             
-            if self.metrics.llm_latencies:
-                avg_llm = sum(self.metrics.llm_latencies) / len(self.metrics.llm_latencies)
-                report_lines.append(f"- **LLM Avg:** {avg_llm:.1f}ms ({len(self.metrics.llm_latencies)} samples)\n")
+            if 'llm' in self.metrics.stats and 'latency' in self.metrics.stats['llm']:
+                latencies = self.metrics.stats['llm']['latency']
+                if latencies:
+                    avg_llm = sum(latencies) / len(latencies)
+                    report_lines.append(f"- **LLM Avg:** {avg_llm:.1f}ms ({len(latencies)} samples)\n")
             
-            if self.metrics.tts_latencies:
-                avg_tts = sum(self.metrics.tts_latencies) / len(self.metrics.tts_latencies)
-                report_lines.append(f"- **TTS Avg:** {avg_tts:.1f}ms ({len(self.metrics.tts_latencies)} samples)\n")
+            if 'tts' in self.metrics.stats and 'latency' in self.metrics.stats['tts']:
+                latencies = self.metrics.stats['tts']['latency']
+                if latencies:
+                    avg_tts = sum(latencies) / len(latencies)
+                    report_lines.append(f"- **TTS Avg:** {avg_tts:.1f}ms ({len(latencies)} samples)\n")
             
-            if self.metrics.e2e_latencies:
-                avg_e2e = sum(self.metrics.e2e_latencies) / len(self.metrics.e2e_latencies)
-                report_lines.append(f"- **End-to-End Avg:** {avg_e2e:.1f}ms ({len(self.metrics.e2e_latencies)} samples)\n")
+            if 'total' in self.metrics.stats and 'latency' in self.metrics.stats['total']:
+                latencies = self.metrics.stats['total']['latency']
+                if latencies:
+                    avg_e2e = sum(latencies) / len(latencies)
+                    report_lines.append(f"- **End-to-End Avg:** {avg_e2e:.1f}ms ({len(latencies)} samples)\n")
             
             report_lines.append("\n---\n\n")
             
