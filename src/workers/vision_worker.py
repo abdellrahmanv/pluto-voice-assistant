@@ -107,8 +107,23 @@ class VisionWorker:
                     
                     self.camera_process.wait()
                     print("   ✅ Camera force-stopped")
+                    
+                # Extra cleanup: kill any remaining rpicam processes
+                try:
+                    subprocess.run(['pkill', '-9', 'rpicam-vid'], 
+                                 stderr=subprocess.DEVNULL, timeout=1)
+                    print("   🧹 Cleaned up any remaining camera processes")
+                except:
+                    pass
+                    
             except Exception as e:
                 print(f"   ⚠️  Camera cleanup warning: {e}")
+                # Final fallback: nuclear option
+                try:
+                    subprocess.run(['pkill', '-9', 'rpicam'], 
+                                 stderr=subprocess.DEVNULL, timeout=1)
+                except:
+                    pass
 
         if self.thread:
             self.thread.join(timeout=5)
