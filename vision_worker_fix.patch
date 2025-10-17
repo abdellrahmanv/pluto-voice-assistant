@@ -1,0 +1,187 @@
+--- a/src/workers/vision_worker.py
++++ b/src/workers/vision_worker.py
+@@ -7,11 +7,14 @@ Integrates with Raspberry Pi camera using rpicam
+ import cv2
+ import numpy as np
++import subprocess
++import threading
+ import queue
+-import threading
+ import time
+-import subprocess
+-import io
++import logging
++import signal
++import os
++import sys
+ from pathlib import Path
+ from typing import Optional, Tuple, Dict, List
+ 
+@@ -26,18 +29,21 @@ class VisionWorker:
+     
+     def __init__(self, output_queue: queue.Queue):
+-        """
+-        Initialize vision worker
+-        
+-        Args:
+-            output_queue: Queue for sending face detection events
+-        """
++        """Initialize vision worker"""
+         self.output_queue = output_queue
+         self.running = False
+         self.thread = None
+-        self.warmup_complete = False
++        self.logger = logging.getLogger(__name__)
++        
++        # Camera process
++        self.camera_process = None
+         
+-        # Face tracking state
++        # Face detection
++        self.detector = None
+         self.locked_face_id = None
+         self.locked_face_bbox = None
+-        self.locked_face_center = None
+-        self.frames_without_face = 0
+-        self.frames_with_face = 0
++        self.frames_since_detection = 0
++        self.last_greeting_time = 0
++        
++        # Performance tracking
++        self.frame_count = 0
+         self.detection_count = 0
+-        self.fps = 0
++        self.start_time = time.time()
+         
+-        # YuNet detector
+-        self.detector = None
+-        self.model_path = VISION_CONFIG['model_path']
++        self.logger.info("Vision Worker initialized")
++    
++    def _stop_camera(self):
++        """Properly stop camera process"""
++        if self.camera_process:
++            try:
++                self.logger.info("📷 Stopping camera...")
++                
++                # Send SIGTERM to process group
++                try:
++                    os.killpg(os.getpgid(self.camera_process.pid), signal.SIGTERM)
++                except ProcessLookupError:
++                    self.logger.warning("Process already terminated")
++                    return
++                
++                # Wait for graceful shutdown
++                try:
++                    self.camera_process.wait(timeout=3)
++                    self.logger.info("✅ Camera stopped gracefully")
++                except subprocess.TimeoutExpired:
++                    # Force kill if needed
++                    self.logger.warning("⚠️  Force killing camera process")
++                    try:
++                        os.killpg(os.getpgid(self.camera_process.pid), signal.SIGKILL)
++                        self.camera_process.wait()
++                    except ProcessLookupError:
++                        pass
++                
++                self.camera_process = None
++                
++                # Give camera time to fully release
++                self.logger.info("   Waiting for camera to release...")
++                time.sleep(1)
++                
++            except Exception as e:
++                self.logger.error(f"❌ Error stopping camera: {e}")
++    
++    def _start_camera(self) -> bool:
++        """Start Raspberry Pi camera using rpicam-vid"""
++        try:
++            # First, check if camera is available
++            self.logger.info("📷 Checking camera availability...")
++            try:
++                check_result = subprocess.run(
++                    ["rpicam-hello", "--list-cameras"],
++                    capture_output=True,
++                    text=True,
++                    timeout=5
++                )
++                
++                if check_result.returncode != 0:
++                    self.logger.error("❌ Camera not detected")
++                    self.logger.info("💡 Enable camera: sudo raspi-config → Interface → Camera")
++                    return False
++                
++                self.logger.info("✅ Camera detected")
++                
++            except subprocess.TimeoutExpired:
++                self.logger.error("❌ Camera check timeout")
++                return False
++            except FileNotFoundError:
++                self.logger.error("❌ rpicam-hello not found")
++                self.logger.info("💡 Install: sudo apt-get install rpicam-apps")
++                return False
+             
+-        # Camera process
+-        self.camera_process = None
+-        self.frame_buffer = None
++            # Start camera stream
++            self.logger.info("📷 Starting Raspberry Pi camera...")
++            
++            cmd = [
++                "rpicam-vid",
++                "--width", str(VISION_CONFIG['frame_width']),
++                "--height", str(VISION_CONFIG['frame_height']),
++                "--framerate", str(VISION_CONFIG['camera_fps']),
++                "--timeout", "0",  # Run indefinitely
++                "--nopreview",  # No preview window
++                "--codec", "yuv420",  # Raw YUV format
++                "-o", "-"  # Output to stdout
++            ]
++            
++            self.logger.info(f"   Command: {' '.join(cmd)}")
++            
++            # Start process with process group for proper cleanup
++            self.camera_process = subprocess.Popen(
++                cmd,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.PIPE,
++                bufsize=10**8,
++                preexec_fn=os.setsid  # Create new process group
++            )
++            
++            # Wait a moment for camera to initialize
++            self.logger.info("   Waiting for camera initialization...")
++            time.sleep(2)
++            
++            # Check if process started successfully
++            if self.camera_process.poll() is not None:
++                stderr = self.camera_process.stderr.read().decode()
++                self.logger.error(f"❌ Camera failed to start: {stderr}")
++                return False
++            
++            self.logger.info("✅ Camera started successfully")
++            return True
++            
++        except Exception as e:
++            self.logger.error(f"❌ Camera startup failed: {e}")
++            import traceback
++            self.logger.error(traceback.format_exc())
++            return False
+         
+-        print("🎥 Vision Worker initialized")
++    def stop(self):
++        """Stop vision worker thread"""
++        if self.running:
++            self.logger.info("Stopping Vision Worker...")
++            self.running = False
++            
++            # Stop camera first
++            self._stop_camera()
++            
++            # Wait for thread
++            if self.thread:
++                self.thread.join(timeout=5)
++                if self.thread.is_alive():
++                    self.logger.warning("Vision Worker thread did not stop gracefully")
++            
++            self.logger.info("Vision Worker stopped")
