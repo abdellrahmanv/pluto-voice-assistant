@@ -54,6 +54,27 @@ temp_tts.wav
 *.wav
 *.tmp
 
+# Temporary helper scripts
+fix_*.py
+enable_*.py
+diagnose_*.py
+replace_*.py
+add_*.py
+do_cleanup.py
+cleanup_repository.py
+
+# Backup files
+*.backup
+*.bak
+*_backup.py
+
+# Test files
+test.wav
+test_*.py
+
+# Patches
+*.patch
+
 # OS
 .DS_Store
 Thumbs.db
