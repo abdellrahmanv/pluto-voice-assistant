@@ -71,6 +71,7 @@ cleanup_repository.py
 # Test files
 test.wav
 test_*.py
+!test_performance.py  # Keep performance testing script
 
 # Patches
 *.patch
