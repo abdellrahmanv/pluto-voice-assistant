@@ -33,6 +33,9 @@ class PerformanceReporter:
         self.memory_samples = []  # [(timestamp, memory_mb), ...]
         self.temp_samples = []  # [(timestamp, temp_celsius), ...]
         
+        # Model-specific tracking
+        self.model_info = {}  # Store model configurations and info
+        
         # Monitoring thread
         self.monitoring_active = False
         
@@ -222,6 +225,21 @@ class PerformanceReporter:
         timestamp = time.time()
         self.component_latencies[component].append((timestamp, latency_ms))
     
+    def log_model_info(self, component: str, model_name: str, model_details: Dict[str, Any]):
+        """
+        Log model information for performance tracking
+        
+        Args:
+            component: 'stt', 'llm', or 'tts'
+            model_name: Name of the model (e.g., 'whisper-tiny', 'qwen2.5:0.5b', 'piper-lessac')
+            model_details: Dict with model config (temperature, params, etc.)
+        """
+        self.model_info[component] = {
+            'name': model_name,
+            'details': model_details,
+            'logged_at': time.time()
+        }
+    
     def log_conversation_event(self, event_type: str, details: str = ""):
         """Log conversation events (start, end, greeting, etc)"""
         timestamp = time.time()
@@ -263,6 +281,9 @@ class PerformanceReporter:
         
         # Executive Summary
         lines.extend(self._generate_summary_section())
+        
+        # Model Performance Analysis (NEW)
+        lines.extend(self._generate_model_performance_section())
         
         # Latency Performance Diagrams
         lines.extend(self._generate_latency_diagrams())
@@ -511,6 +532,138 @@ class PerformanceReporter:
             return "🟠 Hot"
         else:
             return "🔴 Critical"
+    
+    def _generate_model_performance_section(self) -> List[str]:
+        """Generate model-specific performance analysis with ASCII charts"""
+        lines = []
+        
+        if not self.model_info:
+            return lines  # Skip if no model info logged
+        
+        lines.append("## 🤖 Model Performance Analysis\n\n")
+        lines.append("*Detailed performance metrics for each AI model*\n\n")
+        lines.append("---\n\n")
+        
+        # Process each model
+        for component in ['stt', 'llm', 'tts']:
+            if component not in self.model_info or component not in self.component_latencies:
+                continue
+            
+            model_data = self.model_info[component]
+            model_name = model_data['name']
+            model_details = model_data['details']
+            
+            # Get latency stats for this model
+            latencies = [lat for _, lat in self.component_latencies[component]]
+            if not latencies:
+                continue
+            
+            min_lat = min(latencies)
+            max_lat = max(latencies)
+            avg_lat = sum(latencies) / len(latencies)
+            count = len(latencies)
+            
+            # Component-specific icons and names
+            if component == 'stt':
+                icon = "🎤"
+                full_name = "Speech-to-Text (STT)"
+                target_lat = 200
+                target_desc = "<200ms: Excellent, <500ms: Good"
+            elif component == 'llm':
+                icon = "🧠"
+                full_name = "Language Model (LLM)"
+                target_lat = 1500
+                target_desc = "<1500ms: Excellent, <3000ms: Good"
+            else:  # tts
+                icon = "🔊"
+                full_name = "Text-to-Speech (TTS)"
+                target_lat = 150
+                target_desc = "<150ms: Excellent, <300ms: Good"
+            
+            lines.append(f"### {icon} {full_name}\n\n")
+            
+            # Model info box
+            model_box = self.create_box(f"{icon} Model: {model_name}", width=70, color="🔵")
+            lines.append(model_box + "\n\n")
+            
+            # Model configuration details
+            lines.append("**Configuration:**\n")
+            lines.append("```\n")
+            for key, value in model_details.items():
+                if key not in ['logged_at']:
+                    lines.append(f"  {key}: {value}\n")
+            lines.append("```\n\n")
+            
+            # Performance metrics
+            lines.append("**Performance Metrics:**\n\n")
+            lines.append(f"- **Invocations:** {count} times\n")
+            lines.append(f"- **Average Latency:** {avg_lat:.0f}ms\n")
+            lines.append(f"- **Best Performance:** {min_lat:.0f}ms\n")
+            lines.append(f"- **Worst Performance:** {max_lat:.0f}ms\n")
+            lines.append(f"- **Target:** {target_desc}\n\n")
+            
+            # Performance gauge
+            performance_pct = (target_lat / avg_lat * 100) if avg_lat > 0 else 100
+            performance_pct = min(100, performance_pct)
+            
+            if avg_lat < target_lat:
+                status_color = '🟢'
+                status_text = "EXCELLENT"
+            elif avg_lat < target_lat * 2:
+                status_color = '🟡'
+                status_text = "GOOD"
+            else:
+                status_color = '🔴'
+                status_text = "NEEDS IMPROVEMENT"
+            
+            lines.append(f"**Performance Score:** {performance_pct:.0f}/100 {status_color} {status_text}\n\n")
+            
+            # Latency distribution bar chart
+            lines.append("**Latency Distribution:**\n\n")
+            lines.append("```\n")
+            chart = self.create_bar_chart(
+                [min_lat, avg_lat, max_lat],
+                [f"Best:    {min_lat:>6.0f}ms", f"Average: {avg_lat:>6.0f}ms", f"Worst:   {max_lat:>6.0f}ms"],
+                width=50
+            )
+            lines.append(chart + "\n")
+            lines.append("```\n\n")
+            
+            # Latency trend sparkline
+            if len(latencies) > 1:
+                lines.append("**Latency Trend:**\n\n")
+                lines.append("```\n")
+                # Sample up to 60 points
+                step = max(1, len(latencies) // 60)
+                sampled = latencies[::step]
+                sparkline = self.create_sparkline(sampled, width=60)
+                lines.append(f"{sparkline}\n")
+                lines.append(f"Showing {len(sampled)} samples over {count} total invocations\n")
+                lines.append("```\n\n")
+            
+            # Target vs Actual comparison
+            lines.append("**Target vs Actual:**\n\n")
+            lines.append("```\n")
+            lines.append(f"Target:  {target_lat:>6}ms ")
+            target_bar = self.create_progress_bar(target_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
+            lines.append(target_bar + "\n")
+            lines.append(f"Actual:  {avg_lat:>6.0f}ms ")
+            actual_bar = self.create_progress_bar(avg_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
+            lines.append(actual_bar + "\n")
+            
+            if avg_lat < target_lat:
+                diff_pct = ((target_lat - avg_lat) / target_lat) * 100
+                lines.append(f"\n✨ {diff_pct:.0f}% faster than target!\n")
+            elif avg_lat > target_lat:
+                diff_pct = ((avg_lat - target_lat) / target_lat) * 100
+                lines.append(f"\n⚠️  {diff_pct:.0f}% slower than target\n")
+            else:
+                lines.append(f"\n✅ Exactly on target!\n")
+            
+            lines.append("```\n\n")
+            lines.append("---\n\n")
+        
+        return lines
     
     def _generate_latency_diagrams(self) -> List[str]:
         """Generate latency performance diagrams with ASCII charts"""

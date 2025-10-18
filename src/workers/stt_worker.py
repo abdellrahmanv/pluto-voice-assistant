@@ -58,6 +58,19 @@ class STTWorker:
             
             print(f"   Whisper model loaded on: {WHISPER_CONFIG['device']}")
             
+            # Log model info to performance reporter
+            if self.reporter:
+                model_name = f"whisper-{WHISPER_CONFIG['model_size']}"
+                model_details = {
+                    'model_size': WHISPER_CONFIG['model_size'],
+                    'device': WHISPER_CONFIG['device'],
+                    'language': WHISPER_CONFIG['language'],
+                    'temperature': WHISPER_CONFIG['temperature'],
+                    'beam_size': WHISPER_CONFIG['beam_size'],
+                    'fp16': WHISPER_CONFIG['fp16']
+                }
+                self.reporter.log_model_info('stt', model_name, model_details)
+            
             # Initialize PyAudio
             self.audio = pyaudio.PyAudio()
             

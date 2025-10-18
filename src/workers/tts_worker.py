@@ -56,6 +56,19 @@ class TTSWorker:
             
             print(f"   Piper binary ready")
             
+            # Log model info to performance reporter
+            if self.reporter:
+                model_name = Path(PIPER_CONFIG["model_path"]).stem  # e.g., "en_US-lessac-medium"
+                model_details = {
+                    'model_path': str(model_path),
+                    'speaker_id': PIPER_CONFIG['speaker_id'],
+                    'length_scale': PIPER_CONFIG['length_scale'],
+                    'noise_scale': PIPER_CONFIG['noise_scale'],
+                    'noise_w': PIPER_CONFIG['noise_w'],
+                    'sample_rate': PIPER_CONFIG['sample_rate']
+                }
+                self.reporter.log_model_info('tts', model_name, model_details)
+            
             self.audio = pyaudio.PyAudio()
             
             print("✅ TTS Worker initialized")

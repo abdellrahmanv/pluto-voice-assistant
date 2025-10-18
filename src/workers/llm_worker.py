@@ -52,6 +52,21 @@ class LLMWorker:
                 return False
             
             print(f"   Model '{OLLAMA_CONFIG['model']}' ready")
+            
+            # Log model info to performance reporter
+            if self.reporter:
+                model_name = OLLAMA_CONFIG['model']
+                model_details = {
+                    'model': OLLAMA_CONFIG['model'],
+                    'host': OLLAMA_CONFIG['host'],
+                    'temperature': OLLAMA_CONFIG['temperature'],
+                    'top_p': OLLAMA_CONFIG['top_p'],
+                    'max_tokens': OLLAMA_CONFIG['max_tokens'],
+                    'max_history': OLLAMA_CONFIG['max_history'],
+                    'stream': OLLAMA_CONFIG['stream']
+                }
+                self.reporter.log_model_info('llm', model_name, model_details)
+            
             print("✅ LLM Worker initialized")
             return True
             
