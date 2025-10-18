@@ -174,9 +174,9 @@ class PerformanceReporter:
         return output_path
     
     def _generate_summary_section(self) -> List[str]:
-        """Generate executive summary section with performance scoring"""
+        """Generate executive summary section with performance scoring - DIAGRAMS ONLY"""
         lines = []
-        lines.append("## 📊 Executive Summary\n\n")
+        lines.append("## 📊 Performance Score\n\n")
         
         # Count statistics
         total_conversations = sum(1 for _, evt, _ in self.conversation_events if evt == 'conversation_start')
@@ -199,54 +199,132 @@ class PerformanceReporter:
         scores = self._calculate_performance_scores(avg_latencies, avg_cpu, peak_temp)
         overall_score = scores['overall']
         
-        # Overall grade with visual indicator
-        lines.append(f"### Overall Performance: {scores['grade']} {scores['emoji']}\n\n")
-        lines.append(f"**Score:** {overall_score}/100\n\n")
-        
-        # Visual performance gauge
+        # Overall Score Gauge (horizontal bar style)
         lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base'}}%%\n")
+        lines.append("%%{init: {'theme':'base', 'themeVariables': {'fontSize': '20px'}}}%%\n")
         lines.append("graph LR\n")
+        lines.append(f"    START[\" \"]:::hidden\n")
         
-        # Color-coded score boxes
+        # Score bar segments
         if overall_score >= 85:
-            lines.append(f"    SCORE[\"⭐ {overall_score}/100<br/>EXCELLENT\"]:::excellent\n")
+            lines.append(f"    SCORE[\"⭐ EXCELLENT<br/>{overall_score}/100\"]:::excellent\n")
         elif overall_score >= 70:
-            lines.append(f"    SCORE[\"✅ {overall_score}/100<br/>GOOD\"]:::good\n")
+            lines.append(f"    SCORE[\"✅ GOOD<br/>{overall_score}/100\"]:::good\n")
         elif overall_score >= 50:
-            lines.append(f"    SCORE[\"⚠️ {overall_score}/100<br/>NEEDS IMPROVEMENT\"]:::warning\n")
+            lines.append(f"    SCORE[\"⚠️ NEEDS IMPROVEMENT<br/>{overall_score}/100\"]:::warning\n")
         else:
-            lines.append(f"    SCORE[\"❌ {overall_score}/100<br/>POOR\"]:::critical\n")
+            lines.append(f"    SCORE[\"❌ POOR<br/>{overall_score}/100\"]:::critical\n")
         
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff\n")
-        lines.append("    classDef good fill:#3b82f6,stroke:#2563eb,color:#fff\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff\n")
+        lines.append("    START --> SCORE\n")
+        lines.append("    classDef hidden fill:none,stroke:none\n")
+        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:4px,color:#fff,font-size:20px\n")
+        lines.append("    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:4px,color:#fff,font-size:20px\n")
+        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:4px,color:#fff,font-size:20px\n")
+        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:4px,color:#fff,font-size:20px\n")
         lines.append("```\n\n")
         
-        # Key Metrics Table
-        lines.append("### Key Metrics\n\n")
-        lines.append(f"| Metric | Value | Status |\n")
-        lines.append(f"|--------|-------|--------|\n")
-        lines.append(f"| **Conversations** | {total_conversations} | {self._get_status_indicator(total_conversations > 0)} |\n")
-        lines.append(f"| **Errors** | {total_errors} | {self._get_status_indicator(total_errors == 0)} |\n")
-        lines.append(f"| **Warnings** | {total_warnings} | {self._get_status_indicator(total_warnings < 5)} |\n")
+        # Session Stats Diagram
+        lines.append("### Session Statistics\n\n")
+        lines.append("```mermaid\n")
+        lines.append("%%{init: {'theme':'base'}}%%\n")
+        lines.append("graph TD\n")
         
-        if 'total' in avg_latencies:
-            lines.append(f"| **End-to-End Latency** | {avg_latencies['total']:.0f}ms | {self._get_latency_status('total', avg_latencies['total'])} |\n")
-        if 'stt' in avg_latencies:
-            lines.append(f"| **STT Latency** | {avg_latencies['stt']:.0f}ms | {self._get_latency_status('stt', avg_latencies['stt'])} |\n")
-        if 'llm' in avg_latencies:
-            lines.append(f"| **LLM Latency** | {avg_latencies['llm']:.0f}ms | {self._get_latency_status('llm', avg_latencies['llm'])} |\n")
-        if 'tts' in avg_latencies:
-            lines.append(f"| **TTS Latency** | {avg_latencies['tts']:.0f}ms | {self._get_latency_status('tts', avg_latencies['tts'])} |\n")
+        # Conversations
+        conv_style = ":::good" if total_conversations > 0 else ":::warning"
+        lines.append(f"    CONV[\"💬 Conversations<br/>{total_conversations}\"]" + conv_style + "\n")
         
-        lines.append(f"| **CPU Usage** | {avg_cpu:.1f}% | {self._get_cpu_status(avg_cpu)} |\n")
-        lines.append(f"| **Memory Usage** | {avg_mem:.0f}MB | {self._get_memory_status(avg_mem)} |\n")
-        if peak_temp > 0:
-            lines.append(f"| **Peak Temperature** | {peak_temp:.1f}°C | {self._get_temp_status(peak_temp)} |\n")
+        # Errors
+        if total_errors == 0:
+            lines.append(f"    ERR[\"✅ Errors<br/>{total_errors}\"]:::excellent\n")
+        elif total_errors < 5:
+            lines.append(f"    WARN[\"⚠️ Errors<br/>{total_errors}\"]:::warning\n")
+        else:
+            lines.append(f"    ERR[\"❌ Errors<br/>{total_errors}\"]:::critical\n")
         
-        lines.append("\n---\n\n")
+        # Warnings
+        if total_warnings == 0:
+            lines.append(f"    WARNINGS[\"✅ Warnings<br/>{total_warnings}\"]:::excellent\n")
+        elif total_warnings < 10:
+            lines.append(f"    WARNINGS[\"⚠️ Warnings<br/>{total_warnings}\"]:::warning\n")
+        else:
+            lines.append(f"    WARNINGS[\"⚠️ Warnings<br/>{total_warnings}\"]:::critical\n")
+        
+        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
+        lines.append("```\n\n")
+        
+        # Latency Performance Boxes
+        lines.append("### Latency Performance\n\n")
+        lines.append("```mermaid\n")
+        lines.append("%%{init: {'theme':'base'}}%%\n")
+        lines.append("graph TD\n")
+        
+        for component in ['stt', 'llm', 'tts', 'total']:
+            if component in avg_latencies:
+                lat = avg_latencies[component]
+                status = self._get_latency_status(component, lat)
+                
+                if '🟢' in status:
+                    style = ":::excellent"
+                elif '🟡' in status:
+                    style = ":::warning"
+                else:
+                    style = ":::critical"
+                
+                icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
+                label = component.upper() if component != 'total' else 'TOTAL'
+                lines.append(f"    {component.upper()}[\"{icon} {label}<br/>{lat:.0f}ms<br/>{status}\"]{style}\n")
+        
+        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
+        lines.append("```\n\n")
+        
+        # System Resources Boxes
+        lines.append("### System Resources\n\n")
+        lines.append("```mermaid\n")
+        lines.append("%%{init: {'theme':'base'}}%%\n")
+        lines.append("graph TD\n")
+        
+        # CPU
+        cpu_status = self._get_cpu_status(avg_cpu)
+        if '🟢' in cpu_status:
+            cpu_style = ":::excellent"
+        elif '🟡' in cpu_status:
+            cpu_style = ":::warning"
+        else:
+            cpu_style = ":::critical"
+        lines.append(f"    CPU[\"💻 CPU<br/>{avg_cpu:.1f}%<br/>{cpu_status}\"]{cpu_style}\n")
+        
+        # Memory
+        mem_status = self._get_memory_status(avg_mem)
+        if '🟢' in mem_status:
+            mem_style = ":::excellent"
+        elif '🟡' in mem_status:
+            mem_style = ":::warning"
+        else:
+            mem_style = ":::critical"
+        lines.append(f"    MEM[\"🧠 Memory<br/>{avg_mem:.0f}MB<br/>{mem_status}\"]{mem_style}\n")
+        
+        # Temperature
+        if self.temp_samples and peak_temp > 0:
+            temp_status = self._get_temp_status(peak_temp)
+            if '🟢' in temp_status:
+                temp_style = ":::excellent"
+            elif '🟡' in temp_status or '🟠' in temp_status:
+                temp_style = ":::warning"
+            else:
+                temp_style = ":::critical"
+            lines.append(f"    TEMP[\"🌡️ Temperature<br/>{peak_temp:.1f}°C<br/>{temp_status}\"]{temp_style}\n")
+        
+        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
+        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
+        lines.append("```\n\n")
+        
+        lines.append("---\n\n")
         return lines
     
     def _calculate_performance_scores(self, latencies: Dict[str, float], cpu: float, temp: float) -> Dict[str, Any]:
@@ -440,12 +518,12 @@ class PerformanceReporter:
             ]
             actual_str = ", ".join(f"{a:.0f}" for a in actuals)
             
-            lines.append(f"    bar \"Target\" [{target_str}]\n")
-            lines.append(f"    bar \"Actual\" [{actual_str}]\n")
+            lines.append(f"    bar \"🎯 Target\" [{target_str}]\n")
+            lines.append(f"    bar \"📊 Actual\" [{actual_str}]\n")
             lines.append("```\n\n")
         
         # Latency over time (line chart data)
-        lines.append("### Latency Over Time\n\n")
+        lines.append("### Response Time Trends\n\n")
         
         for component in ['stt', 'llm', 'tts', 'total']:
             if component not in self.component_latencies:
@@ -651,17 +729,15 @@ class PerformanceReporter:
         return lines
     
     def _generate_statistics_tables(self) -> List[str]:
-        """Generate detailed statistics tables"""
+        """Generate detailed statistics - DIAGRAMS ONLY"""
         lines = []
-        lines.append("## 📈 Detailed Statistics\n\n")
+        lines.append("## 📈 Detailed Performance Metrics\n\n")
         
-        # Latency breakdown table
+        # Latency breakdown - Min/Max/Mean as bar chart
         if self.component_latencies:
-            lines.append("### Latency Breakdown\n\n")
-            lines.append("| Component | Count | Min | Max | Mean | Median | P95 |\n")
-            lines.append("|-----------|-------|-----|-----|------|--------|-----|\n")
+            lines.append("### Latency Statistics (Min / Mean / Max)\n\n")
             
-            for component in ['stt', 'llm', 'tts', 'vision', 'total']:
+            for component in ['stt', 'llm', 'tts', 'total']:
                 if component not in self.component_latencies:
                     continue
                 
@@ -674,32 +750,71 @@ class PerformanceReporter:
                 min_lat = min(samples)
                 max_lat = max(samples)
                 mean_lat = sum(samples) / count
-                median_lat = sorted_samples[count // 2]
-                p95_lat = sorted_samples[int(count * 0.95)] if count > 1 else max_lat
                 
-                lines.append(f"| **{component.upper()}** | {count} | {min_lat:.0f}ms | {max_lat:.0f}ms | {mean_lat:.0f}ms | {median_lat:.0f}ms | {p95_lat:.0f}ms |\n")
-            
-            lines.append("\n")
+                icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
+                label = component.upper() if component != 'total' else 'END-TO-END'
+                
+                lines.append(f"**{icon} {label}** ({count} samples)\n\n")
+                lines.append("```mermaid\n")
+                lines.append("%%{init: {'theme':'base'}}%%\n")
+                lines.append("xychart-beta\n")
+                lines.append(f"    title \"{label} Latency Distribution\"\n")
+                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
+                lines.append(f"    y-axis \"Latency (ms)\" 0 --> {int(max_lat * 1.1)}\n")
+                lines.append(f"    bar [{min_lat:.0f}, {mean_lat:.0f}, {max_lat:.0f}]\n")
+                lines.append("```\n\n")
         
-        # System resource stats
+        # System resource stats as gauge-style diagrams
         if self.cpu_samples or self.memory_samples or self.temp_samples:
-            lines.append("### System Resource Statistics\n\n")
-            lines.append("| Resource | Min | Max | Mean |\n")
-            lines.append("|----------|-----|-----|------|\n")
+            lines.append("### System Resource Range\n\n")
             
             if self.cpu_samples:
                 cpu_vals = [cpu for _, cpu in self.cpu_samples]
-                lines.append(f"| **CPU Usage** | {min(cpu_vals):.1f}% | {max(cpu_vals):.1f}% | {sum(cpu_vals)/len(cpu_vals):.1f}% |\n")
+                min_cpu = min(cpu_vals)
+                max_cpu = max(cpu_vals)
+                mean_cpu = sum(cpu_vals) / len(cpu_vals)
+                
+                lines.append("**💻 CPU Usage**\n\n")
+                lines.append("```mermaid\n")
+                lines.append("%%{init: {'theme':'base'}}%%\n")
+                lines.append("xychart-beta\n")
+                lines.append("    title \"CPU Usage Distribution\"\n")
+                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
+                lines.append("    y-axis \"CPU %\" 0 --> 100\n")
+                lines.append(f"    bar [{min_cpu:.1f}, {mean_cpu:.1f}, {max_cpu:.1f}]\n")
+                lines.append("```\n\n")
             
             if self.memory_samples:
                 mem_vals = [mem for _, mem in self.memory_samples]
-                lines.append(f"| **Memory Usage** | {min(mem_vals):.0f}MB | {max(mem_vals):.0f}MB | {sum(mem_vals)/len(mem_vals):.0f}MB |\n")
+                min_mem = min(mem_vals)
+                max_mem = max(mem_vals)
+                mean_mem = sum(mem_vals) / len(mem_vals)
+                
+                lines.append("**🧠 Memory Usage**\n\n")
+                lines.append("```mermaid\n")
+                lines.append("%%{init: {'theme':'base'}}%%\n")
+                lines.append("xychart-beta\n")
+                lines.append("    title \"Memory Usage Distribution\"\n")
+                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
+                lines.append(f"    y-axis \"Memory (MB)\" 0 --> {int(max_mem * 1.2)}\n")
+                lines.append(f"    bar [{min_mem:.0f}, {mean_mem:.0f}, {max_mem:.0f}]\n")
+                lines.append("```\n\n")
             
             if self.temp_samples:
                 temp_vals = [temp for _, temp in self.temp_samples]
-                lines.append(f"| **CPU Temperature** | {min(temp_vals):.1f}°C | {max(temp_vals):.1f}°C | {sum(temp_vals)/len(temp_vals):.1f}°C |\n")
-            
-            lines.append("\n")
+                min_temp = min(temp_vals)
+                max_temp = max(temp_vals)
+                mean_temp = sum(temp_vals) / len(temp_vals)
+                
+                lines.append("**🌡️ CPU Temperature**\n\n")
+                lines.append("```mermaid\n")
+                lines.append("%%{init: {'theme':'base'}}%%\n")
+                lines.append("xychart-beta\n")
+                lines.append("    title \"Temperature Distribution\"\n")
+                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
+                lines.append("    y-axis \"Temperature (°C)\" 0 --> 100\n")
+                lines.append(f"    bar [{min_temp:.1f}, {mean_temp:.1f}, {max_temp:.1f}]\n")
+                lines.append("```\n\n")
         
         lines.append("---\n\n")
         return lines

@@ -8,36 +8,61 @@
 
 ---
 
-## 📊 Executive Summary
+## 📊 Performance Score
 
-### Overall Performance: GOOD ✅
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'fontSize': '20px'}}}%%
+graph LR
+    START[" "]:::hidden
+    SCORE["✅ GOOD<br/>78/100"]:::good
+    START --> SCORE
+    classDef hidden fill:none,stroke:none
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:4px,color:#fff,font-size:20px
+    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:4px,color:#fff,font-size:20px
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:4px,color:#fff,font-size:20px
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:4px,color:#fff,font-size:20px
+```
 
-**Score:** 78/100
+### Session Statistics
 
 ```mermaid
 %%{init: {'theme':'base'}}%%
-graph LR
-    SCORE["✅ 78/100<br/>GOOD"]:::good
-    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff
-    classDef good fill:#3b82f6,stroke:#2563eb,color:#fff
-    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff
-    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff
+graph TD
+    CONV["💬 Conversations<br/>12"]:::good
+    ERR["✅ Errors<br/>0"]:::excellent
+    WARNINGS["✅ Warnings<br/>0"]:::excellent
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff
+    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:3px,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
 ```
 
-### Key Metrics
+### Latency Performance
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Conversations** | 12 | ✅ Good |
-| **Errors** | 0 | ✅ Good |
-| **Warnings** | 0 | ✅ Good |
-| **End-to-End Latency** | 2340ms | 🟡 Acceptable |
-| **STT Latency** | 245ms | 🟡 Acceptable |
-| **LLM Latency** | 1890ms | 🟡 Acceptable |
-| **TTS Latency** | 205ms | 🟡 Acceptable |
-| **CPU Usage** | 52.3% | 🟡 Moderate |
-| **Memory Usage** | 1245MB | 🟢 Good |
-| **Peak Temperature** | 64.5°C | 🟢 Cool |
+```mermaid
+%%{init: {'theme':'base'}}%%
+graph TD
+    STT["🎤 STT<br/>245ms<br/>🟡 Acceptable"]:::warning
+    LLM["🧠 LLM<br/>1890ms<br/>🟡 Acceptable"]:::warning
+    TTS["🔊 TTS<br/>205ms<br/>🟡 Acceptable"]:::warning
+    TOTAL["⏱️ TOTAL<br/>2340ms<br/>🟡 Acceptable"]:::warning
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
+```
+
+### System Resources
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+graph TD
+    CPU["💻 CPU<br/>52.3%<br/>🟡 Moderate"]:::warning
+    MEM["🧠 Memory<br/>1245MB<br/>🟢 Good"]:::excellent
+    TEMP["🌡️ Temperature<br/>64.5°C<br/>🟢 Cool"]:::excellent
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
+```
 
 ---
 
@@ -52,9 +77,9 @@ graph TD
     LLM["🧠 LLM<br/>1890ms<br/>🟡 Acceptable"]:::warning
     TTS["🔊 TTS<br/>205ms<br/>🟡 Acceptable"]:::warning
     TOTAL["⏱️ TOTAL<br/>2340ms<br/>🟡 Acceptable"]:::warning
-    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff
-    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff
-    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
 ```
 
 ### Performance vs Targets
@@ -65,13 +90,13 @@ xychart-beta
     title "Latency: Target vs Actual"
     x-axis [STT, LLM, TTS, Total]
     y-axis "Latency (ms)" 0 --> 3000
-    bar "Target" [200, 1500, 150, 2000]
-    bar "Actual" [245, 1890, 205, 2340]
+    bar "🎯 Target" [200, 1500, 150, 2000]
+    bar "📊 Actual" [245, 1890, 205, 2340]
 ```
 
-### Latency Over Time
+### Response Time Trends
 
-#### STT Latency Timeline
+#### 🎤 STT Latency Timeline
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'xyChart': {'backgroundColor': 'transparent'}}}}%%
@@ -82,7 +107,7 @@ xychart-beta
     line [245, 189, 234, 210, 198, 267, 223, 215, 241, 256, 198, 234]
 ```
 
-#### LLM Latency Timeline
+#### 🧠 LLM Latency Timeline
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'xyChart': {'backgroundColor': 'transparent'}}}}%%
@@ -93,7 +118,7 @@ xychart-beta
     line [1890, 1750, 1820, 2100, 1950, 1880, 1920, 1850, 1780, 2050, 1890, 1920]
 ```
 
-#### TTS Latency Timeline
+#### 🔊 TTS Latency Timeline
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'xyChart': {'backgroundColor': 'transparent'}}}}%%
@@ -104,7 +129,7 @@ xychart-beta
     line [205, 198, 210, 223, 189, 215, 201, 207, 198, 212, 205, 199]
 ```
 
-#### TOTAL Latency Timeline
+#### ⏱️ TOTAL Latency Timeline
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'xyChart': {'backgroundColor': 'transparent'}}}}%%
@@ -127,9 +152,9 @@ graph TD
     CPU["💻 CPU<br/>52.3%<br/>🟡 Moderate"]:::warning
     MEM["🧠 Memory<br/>1245MB<br/>🟢 Good"]:::excellent
     TEMP["🌡️ Temperature<br/>64.5°C<br/>🟢 Cool"]:::excellent
-    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff
-    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff
-    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff
+    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff
+    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff
 ```
 
 ### CPU Usage Over Time
@@ -198,24 +223,88 @@ gantt
 
 ---
 
-## 📈 Detailed Statistics
+## 📈 Detailed Performance Metrics
 
-### Latency Breakdown
+### Latency Statistics (Min / Mean / Max)
 
-| Component | Count | Min | Max | Mean | Median | P95 |
-|-----------|-------|-----|-----|------|--------|-----|
-| **STT** | 12 | 189ms | 267ms | 245ms | 234ms | 262ms |
-| **LLM** | 12 | 1750ms | 2100ms | 1890ms | 1890ms | 2065ms |
-| **TTS** | 12 | 189ms | 223ms | 205ms | 205ms | 218ms |
-| **TOTAL** | 12 | 2137ms | 2533ms | 2340ms | 2344ms | 2511ms |
+**🎤 STT** (12 samples)
 
-### System Resource Statistics
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "STT Latency Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Latency (ms)" 0 --> 293
+    bar [189, 245, 267]
+```
 
-| Resource | Min | Max | Mean |
-|----------|-----|-----|------|
-| **CPU Usage** | 45.2% | 60.1% | 52.3% |
-| **Memory Usage** | 1180MB | 1275MB | 1245MB |
-| **CPU Temperature** | 58.5°C | 64.5°C | 61.8°C |
+**🧠 LLM** (12 samples)
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "LLM Latency Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Latency (ms)" 0 --> 2310
+    bar [1750, 1890, 2100]
+```
+
+**🔊 TTS** (12 samples)
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "TTS Latency Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Latency (ms)" 0 --> 245
+    bar [189, 205, 223]
+```
+
+**⏱️ END-TO-END** (12 samples)
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "END-TO-END Latency Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Latency (ms)" 0 --> 2786
+    bar [2137, 2340, 2533]
+```
+
+### System Resource Range
+
+**💻 CPU Usage**
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "CPU Usage Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "CPU %" 0 --> 100
+    bar [45.2, 52.3, 60.1]
+```
+
+**🧠 Memory Usage**
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "Memory Usage Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Memory (MB)" 0 --> 1530
+    bar [1180, 1245, 1275]
+```
+
+**🌡️ CPU Temperature**
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+xychart-beta
+    title "Temperature Distribution"
+    x-axis ["Min", "Mean", "Max"]
+    y-axis "Temperature (°C)" 0 --> 100
+    bar [58.5, 61.8, 64.5]
+```
 
 ---
 
