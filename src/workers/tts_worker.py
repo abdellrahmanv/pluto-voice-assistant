@@ -19,9 +19,10 @@ from config import AUDIO_CONFIG, PIPER_CONFIG, WORKER_CONFIG, QUEUE_CONFIG
 class TTSWorker:
     """Text-to-Speech worker using Piper"""
     
-    def __init__(self, input_queue: queue.Queue, metrics_logger=None):
+    def __init__(self, input_queue: queue.Queue, metrics_logger=None, reporter=None):
         self.input_queue = input_queue
         self.metrics = metrics_logger
+        self.reporter = reporter
         self.running = False
         self.thread = None
         
@@ -136,6 +137,9 @@ class TTSWorker:
                         
                         if self.metrics:
                             self.metrics.log_metric('tts', 'latency', latency, 'ms')
+                        
+                        if self.reporter:
+                            self.reporter.log_latency('tts', latency)
                         
                         self.processing_count += 1
                 

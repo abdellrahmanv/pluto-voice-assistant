@@ -15,10 +15,11 @@ from config import OLLAMA_CONFIG, WORKER_CONFIG, QUEUE_CONFIG
 class LLMWorker:
     """Language Model worker using Ollama"""
     
-    def __init__(self, input_queue: queue.Queue, output_queue: queue.Queue, metrics_logger=None):
+    def __init__(self, input_queue: queue.Queue, output_queue: queue.Queue, metrics_logger=None, reporter=None):
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.metrics = metrics_logger
+        self.reporter = reporter
         self.running = False
         self.thread = None
         
@@ -130,6 +131,9 @@ class LLMWorker:
                     
                     if self.metrics:
                         self.metrics.log_metric('llm', 'latency', latency, 'ms')
+                    
+                    if self.reporter:
+                        self.reporter.log_latency('llm', latency)
                     
                     self.output_queue.put({
                         'type': 'response',

@@ -24,9 +24,10 @@ from config import (
 class STTWorker:
     """Speech-to-text worker using Whisper"""
     
-    def __init__(self, output_queue: queue.Queue, metrics=None):
+    def __init__(self, output_queue: queue.Queue, metrics=None, reporter=None):
         self.output_queue = output_queue
         self.metrics = metrics
+        self.reporter = reporter
         
         self.running = False
         self.paused = True  # Start paused (vision-driven activation)
@@ -188,6 +189,9 @@ class STTWorker:
                         
                         if self.metrics:
                             self.metrics.log_metric('stt', 'latency', latency, 'ms')
+                        
+                        if self.reporter:
+                            self.reporter.log_latency('stt', latency)
                         
                         self.processing_count += 1
             

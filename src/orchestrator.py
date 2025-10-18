@@ -15,24 +15,10 @@ from pathlib import Path
 
 from config import QUEUE_CONFIG, ORCHESTRATOR_CONFIG, VISION_CONFIG, print_config_summary
 from metrics_logger import get_logger, close_logger
+from performance_reporter import get_reporter, close_reporter
 from workers import STTWorker, LLMWorker, TTSWorker
 from workers.vision_worker import VisionWorker
 from agent_state import AgentStateManager, AgentState
-
-
-class TeeOutput:
-    """Capture output to both original stream and log buffer"""
-    def __init__(self, original, buffer):
-        self.original = original
-        self.buffer = buffer
-    
-    def write(self, text):
-        self.original.write(text)
-        self.buffer.write(text)
-    
-    def flush(self):
-        self.original.flush()
-        self.buffer.flush()
 
 
 class PlutoOrchestrator:
@@ -45,21 +31,12 @@ class PlutoOrchestrator:
         Args:
             enable_vision: Enable vision worker (default: True)
         """
-        # Logging setup - capture all output
-        self.log_buffer = io.StringIO()
-        self.original_stdout = sys.stdout
-        self.original_stderr = sys.stderr
-        self.tee_stdout = TeeOutput(self.original_stdout, self.log_buffer)
-        self.tee_stderr = TeeOutput(self.original_stderr, self.log_buffer)
-        sys.stdout = self.tee_stdout
-        sys.stderr = self.tee_stderr
-        
         # Session tracking
         self.session_start_time = datetime.now()
-        self.errors = []
-        self.warnings = []
-        self.vision_events = []
-        self.state_transitions = []
+        
+        # Performance reporter (NEW: Replaces log buffer approach)
+        self.reporter = get_reporter()
+        self.reporter.start_monitoring(interval=2.0)
         
         # Queues
         self.stt_to_llm_queue = queue.Queue(maxsize=QUEUE_CONFIG["max_size"])
@@ -72,10 +49,10 @@ class PlutoOrchestrator:
         # Agent state manager (NEW: Reflex agent behavior)
         self.agent_state = AgentStateManager()
         
-        # Workers
-        self.stt_worker = STTWorker(self.stt_to_llm_queue, self.metrics)
-        self.llm_worker = LLMWorker(self.stt_to_llm_queue, self.llm_to_tts_queue, self.metrics)
-        self.tts_worker = TTSWorker(self.llm_to_tts_queue, self.metrics)
+        # Workers (pass reporter for latency tracking)
+        self.stt_worker = STTWorker(self.stt_to_llm_queue, self.metrics, self.reporter)
+        self.llm_worker = LLMWorker(self.stt_to_llm_queue, self.llm_to_tts_queue, self.metrics, self.reporter)
+        self.tts_worker = TTSWorker(self.llm_to_tts_queue, self.metrics, self.reporter)
         
         # Vision worker (optional)
         self.enable_vision = enable_vision
@@ -160,6 +137,7 @@ class PlutoOrchestrator:
         """Track conversation start when STT produces transcript"""
         self.conversation_start_time = time.time()
         self.metrics.log_conversation_start()
+        self.reporter.log_conversation_event('conversation_start', f"User spoke: {item.get('text', '')[:50]}")
         return self.original_stt_put(item, **kwargs)
     
     def _wrap_tts_get(self, **kwargs):
@@ -169,6 +147,8 @@ class PlutoOrchestrator:
         if self.conversation_start_time:
             total_latency = (time.time() - self.conversation_start_time) * 1000
             self.metrics.log_conversation_end(total_latency)
+            self.reporter.log_latency('total', total_latency)
+            self.reporter.log_conversation_event('conversation_end', f"Total latency: {total_latency:.0f}ms")
             self.conversation_start_time = None
         
         return item
@@ -252,13 +232,6 @@ class PlutoOrchestrator:
         """
         vision_state = event.get('state', 'idle')
         
-        # Log vision event
-        self.vision_events.append({
-            'timestamp': datetime.now(),
-            'state': vision_state,
-            'details': str(event)
-        })
-        
         # State: IDLE - waiting for a face
         if self.agent_state.current_state == AgentState.IDLE:
             if vision_state in ['face_locked', 'locked_tracking']:
@@ -272,7 +245,7 @@ class PlutoOrchestrator:
                         AgentState.FACE_DETECTED,
                         f"Face locked at {locked_face['center']}"
                     )
-                    self._log_state_transition('IDLE', 'FACE_DETECTED', f"Face locked at {locked_face['center']}")
+                    self.reporter.log_conversation_event('face_detected', f"Face locked at {locked_face['center']}")
                     
                     # Then immediately to LOCKED_IN (ready to greet)
                     self.agent_state.lock_face(locked_face['id'])
@@ -280,7 +253,7 @@ class PlutoOrchestrator:
                         AgentState.LOCKED_IN,
                         "Ready to initiate conversation"
                     )
-                    self._log_state_transition('FACE_DETECTED', 'LOCKED_IN', 'Ready to initiate conversation')
+                    self.reporter.log_conversation_event('face_locked', 'Ready to initiate conversation')
                     
                     # Trigger greeting
                     self._send_greeting()
@@ -296,7 +269,7 @@ class PlutoOrchestrator:
                     AgentState.FACE_LOST,
                     "Face no longer detected"
                 )
-                self._log_state_transition('LOCKED_IN', 'FACE_LOST', 'Face no longer detected')
+                self.reporter.log_conversation_event('face_lost', 'Person left')
                 
                 # Stop listening
                 self.stt_worker.pause()
@@ -304,21 +277,12 @@ class PlutoOrchestrator:
                 # Reset after timeout
                 time.sleep(2.0)
                 self.agent_state.reset()
-                self._log_state_transition('FACE_LOST', 'IDLE', 'Reset after timeout')
+                self.reporter.log_conversation_event('agent_reset', 'Ready for next person')
                 print("🔄 Ready for next person\n")
             
             elif vision_state in ['face_locked', 'locked_tracking']:
                 # Person still here, continue normal operation
                 pass
-    
-    def _log_state_transition(self, from_state: str, to_state: str, reason: str):
-        """Log state transition for report"""
-        self.state_transitions.append({
-            'timestamp': datetime.now(),
-            'from': from_state,
-            'to': to_state,
-            'reason': reason
-        })
     
     def _send_greeting(self):
         """
@@ -353,6 +317,9 @@ class PlutoOrchestrator:
             self.stt_to_llm_queue.put_nowait(greeting_msg)
             print(f"💬 Greeting queued: \"{VISION_CONFIG['greeting_message']}\"")
             
+            # Log greeting event
+            self.reporter.log_conversation_event('greeting_sent', VISION_CONFIG['greeting_message'])
+            
             # Transition to listening after greeting
             self.agent_state.transition(
                 AgentState.LISTENING,
@@ -364,6 +331,7 @@ class PlutoOrchestrator:
             
         except queue.Full:
             print("⚠️  Failed to queue greeting - queue full")
+            self.reporter.log_warning("Failed to queue greeting - queue full")
     
     def get_status(self) -> dict:
         """Get orchestrator status"""
@@ -437,21 +405,17 @@ class PlutoOrchestrator:
             try:
                 worker.stop()
             except Exception as e:
-                print(f"⚠️  Error stopping {worker.__class__.__name__}: {e}")
-                self.errors.append({
-                    'timestamp': datetime.now(),
-                    'message': f"Error stopping {worker.__class__.__name__}: {e}"
-                })
+                error_msg = f"Error stopping {worker.__class__.__name__}: {e}"
+                print(f"⚠️  {error_msg}")
+                self.reporter.log_error(error_msg)
         
         print("\n📊 Saving metrics...")
         close_logger()
         
-        print("\n📝 Generating Markdown report...")
-        self._generate_markdown_report()
-        
-        # Restore original stdout/stderr
-        sys.stdout = self.original_stdout
-        sys.stderr = self.original_stderr
+        print("\n� Generating performance diagram report...")
+        report_path = close_reporter()
+        if report_path:
+            print(f"✅ Performance report: {report_path}")
         
         print("\n" + "="*70)
         print("🪐 PLUTO SHUTDOWN COMPLETE")
@@ -461,153 +425,6 @@ class PlutoOrchestrator:
         """Handle shutdown signals"""
         print(f"\n\n📡 Received signal {signum}")
         self.running = False
-    
-    def _generate_markdown_report(self):
-        """Generate Markdown log report on shutdown"""
-        try:
-            # Create logs directory if it doesn't exist
-            logs_dir = Path(__file__).parent.parent / "logs"
-            logs_dir.mkdir(exist_ok=True)
-            
-            # Generate timestamp for filename
-            timestamp = self.session_start_time.strftime("%Y%m%d_%H%M%S")
-            report_path = logs_dir / f"pluto_report_{timestamp}.md"
-            log_path = logs_dir / f"pluto_run_{timestamp}.log"
-            
-            # Save raw log
-            log_content = self.log_buffer.getvalue()
-            with open(log_path, 'w', encoding='utf-8') as f:
-                f.write(log_content)
-            
-            # Parse logs for errors and warnings
-            self._parse_logs(log_content)
-            
-            # Calculate session duration
-            duration = datetime.now() - self.session_start_time
-            duration_str = str(duration).split('.')[0]  # Remove microseconds
-            
-            # Generate Markdown report
-            report_lines = []
-            report_lines.append("# 🪐 Pluto Session Report\n")
-            report_lines.append(f"**Session Start:** {self.session_start_time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            report_lines.append(f"**Session End:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            report_lines.append(f"**Duration:** {duration_str}\n")
-            report_lines.append(f"**Vision Enabled:** {'Yes' if self.enable_vision else 'No'}\n")
-            report_lines.append("\n---\n\n")
-            
-            # Summary Statistics
-            report_lines.append("## 📊 Summary\n\n")
-            report_lines.append(f"- **Total Errors:** {len(self.errors)}\n")
-            report_lines.append(f"- **Total Warnings:** {len(self.warnings)}\n")
-            report_lines.append(f"- **Conversations:** {self.metrics.conversation_count}\n")
-            if self.enable_vision:
-                report_lines.append(f"- **Vision Events:** {len(self.vision_events)}\n")
-                report_lines.append(f"- **State Transitions:** {len(self.state_transitions)}\n")
-            report_lines.append("\n---\n\n")
-            
-            # Errors Section
-            if self.errors:
-                report_lines.append("## ❌ Errors\n\n")
-                for err in self.errors:
-                    time_str = err['timestamp'].strftime('%H:%M:%S')
-                    report_lines.append(f"**[{time_str}]** {err['message']}\n\n")
-                report_lines.append("---\n\n")
-            else:
-                report_lines.append("## ✅ No Errors\n\n---\n\n")
-            
-            # Warnings Section
-            if self.warnings:
-                report_lines.append("## ⚠️ Warnings\n\n")
-                for warn in self.warnings[-20:]:  # Last 20 warnings
-                    time_str = warn['timestamp'].strftime('%H:%M:%S')
-                    report_lines.append(f"**[{time_str}]** {warn['message']}\n\n")
-                if len(self.warnings) > 20:
-                    report_lines.append(f"*...and {len(self.warnings) - 20} more warnings*\n\n")
-                report_lines.append("---\n\n")
-            
-            # Vision Events Section
-            if self.enable_vision and self.vision_events:
-                report_lines.append("## 👁️ Vision Events\n\n")
-                for event in self.vision_events[-30:]:  # Last 30 events
-                    time_str = event['timestamp'].strftime('%H:%M:%S')
-                    report_lines.append(f"**[{time_str}]** `{event['state']}` - {event['details']}\n\n")
-                if len(self.vision_events) > 30:
-                    report_lines.append(f"*...and {len(self.vision_events) - 30} more vision events*\n\n")
-                report_lines.append("---\n\n")
-            
-            # State Transitions Section
-            if self.state_transitions:
-                report_lines.append("## 🔄 Agent State Transitions\n\n")
-                for trans in self.state_transitions:
-                    time_str = trans['timestamp'].strftime('%H:%M:%S')
-                    report_lines.append(f"**[{time_str}]** `{trans['from']}` → `{trans['to']}` - {trans['reason']}\n\n")
-                report_lines.append("---\n\n")
-            
-            # Performance Metrics Section
-            report_lines.append("## 📈 Performance Metrics\n\n")
-            report_lines.append("### Latency Statistics\n\n")
-            
-            # Access stats from metrics.stats dictionary
-            if 'stt' in self.metrics.stats and 'latency' in self.metrics.stats['stt']:
-                latencies = self.metrics.stats['stt']['latency']
-                if latencies:
-                    avg_stt = sum(latencies) / len(latencies)
-                    report_lines.append(f"- **STT Avg:** {avg_stt:.1f}ms ({len(latencies)} samples)\n")
-            
-            if 'llm' in self.metrics.stats and 'latency' in self.metrics.stats['llm']:
-                latencies = self.metrics.stats['llm']['latency']
-                if latencies:
-                    avg_llm = sum(latencies) / len(latencies)
-                    report_lines.append(f"- **LLM Avg:** {avg_llm:.1f}ms ({len(latencies)} samples)\n")
-            
-            if 'tts' in self.metrics.stats and 'latency' in self.metrics.stats['tts']:
-                latencies = self.metrics.stats['tts']['latency']
-                if latencies:
-                    avg_tts = sum(latencies) / len(latencies)
-                    report_lines.append(f"- **TTS Avg:** {avg_tts:.1f}ms ({len(latencies)} samples)\n")
-            
-            if 'total' in self.metrics.stats and 'latency' in self.metrics.stats['total']:
-                latencies = self.metrics.stats['total']['latency']
-                if latencies:
-                    avg_e2e = sum(latencies) / len(latencies)
-                    report_lines.append(f"- **End-to-End Avg:** {avg_e2e:.1f}ms ({len(latencies)} samples)\n")
-            
-            report_lines.append("\n---\n\n")
-            
-            # Log File Reference
-            report_lines.append("## 📄 Full Logs\n\n")
-            report_lines.append(f"Complete session logs saved to: `{log_path.name}`\n\n")
-            
-            # Write report
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.writelines(report_lines)
-            
-            print(f"✅ Report saved: {report_path}")
-            print(f"✅ Full logs saved: {log_path}")
-            
-        except Exception as e:
-            print(f"⚠️  Failed to generate report: {e}")
-    
-    def _parse_logs(self, log_content: str):
-        """Parse log content for errors and warnings"""
-        lines = log_content.split('\n')
-        for line in lines:
-            line_lower = line.lower()
-            
-            # Detect errors
-            if '❌' in line or 'error' in line_lower or 'failed' in line_lower:
-                if 'error stopping' not in line_lower:  # Already captured
-                    self.errors.append({
-                        'timestamp': datetime.now(),
-                        'message': line.strip()
-                    })
-            
-            # Detect warnings
-            elif '⚠️' in line or 'warning' in line_lower or 'warn' in line_lower:
-                self.warnings.append({
-                    'timestamp': datetime.now(),
-                    'message': line.strip()
-                })
 
 
 def main():
