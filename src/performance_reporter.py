@@ -538,7 +538,10 @@ class PerformanceReporter:
         lines = []
         
         if not self.model_info:
+            print("⚠️  No model info available for report (workers may not have initialized)")
             return lines  # Skip if no model info logged
+        
+        print(f"📊 Generating model performance section for: {list(self.model_info.keys())}")
         
         lines.append("## 🤖 Model Performance Analysis\n\n")
         lines.append("*Detailed performance metrics for each AI model*\n\n")
@@ -546,22 +549,16 @@ class PerformanceReporter:
         
         # Process each model
         for component in ['stt', 'llm', 'tts']:
-            if component not in self.model_info or component not in self.component_latencies:
+            if component not in self.model_info:
+                print(f"   ⚠️  No model info for {component}")
                 continue
             
             model_data = self.model_info[component]
             model_name = model_data['name']
             model_details = model_data['details']
             
-            # Get latency stats for this model
-            latencies = [lat for _, lat in self.component_latencies[component]]
-            if not latencies:
-                continue
-            
-            min_lat = min(latencies)
-            max_lat = max(latencies)
-            avg_lat = sum(latencies) / len(latencies)
-            count = len(latencies)
+            # Get latency stats for this model (may be empty if no samples yet)
+            latencies = [lat for _, lat in self.component_latencies.get(component, [])]
             
             # Component-specific icons and names
             if component == 'stt':
@@ -594,73 +591,86 @@ class PerformanceReporter:
                     lines.append(f"  {key}: {value}\n")
             lines.append("```\n\n")
             
-            # Performance metrics
-            lines.append("**Performance Metrics:**\n\n")
-            lines.append(f"- **Invocations:** {count} times\n")
-            lines.append(f"- **Average Latency:** {avg_lat:.0f}ms\n")
-            lines.append(f"- **Best Performance:** {min_lat:.0f}ms\n")
-            lines.append(f"- **Worst Performance:** {max_lat:.0f}ms\n")
-            lines.append(f"- **Target:** {target_desc}\n\n")
-            
-            # Performance gauge
-            performance_pct = (target_lat / avg_lat * 100) if avg_lat > 0 else 100
-            performance_pct = min(100, performance_pct)
-            
-            if avg_lat < target_lat:
-                status_color = '🟢'
-                status_text = "EXCELLENT"
-            elif avg_lat < target_lat * 2:
-                status_color = '🟡'
-                status_text = "GOOD"
-            else:
-                status_color = '🔴'
-                status_text = "NEEDS IMPROVEMENT"
-            
-            lines.append(f"**Performance Score:** {performance_pct:.0f}/100 {status_color} {status_text}\n\n")
-            
-            # Latency distribution bar chart
-            lines.append("**Latency Distribution:**\n\n")
-            lines.append("```\n")
-            chart = self.create_bar_chart(
-                [min_lat, avg_lat, max_lat],
-                [f"Best:    {min_lat:>6.0f}ms", f"Average: {avg_lat:>6.0f}ms", f"Worst:   {max_lat:>6.0f}ms"],
-                width=50
-            )
-            lines.append(chart + "\n")
-            lines.append("```\n\n")
-            
-            # Latency trend sparkline
-            if len(latencies) > 1:
-                lines.append("**Latency Trend:**\n\n")
+            # If we have latency data, show performance metrics
+            if latencies:
+                min_lat = min(latencies)
+                max_lat = max(latencies)
+                avg_lat = sum(latencies) / len(latencies)
+                count = len(latencies)
+                
+                # Performance metrics
+                lines.append("**Performance Metrics:**\n\n")
+                lines.append(f"- **Invocations:** {count} times\n")
+                lines.append(f"- **Average Latency:** {avg_lat:.0f}ms\n")
+                lines.append(f"- **Best Performance:** {min_lat:.0f}ms\n")
+                lines.append(f"- **Worst Performance:** {max_lat:.0f}ms\n")
+                lines.append(f"- **Target:** {target_desc}\n\n")
+                
+                # Performance gauge
+                performance_pct = (target_lat / avg_lat * 100) if avg_lat > 0 else 100
+                performance_pct = min(100, performance_pct)
+                
+                if avg_lat < target_lat:
+                    status_color = '🟢'
+                    status_text = "EXCELLENT"
+                elif avg_lat < target_lat * 2:
+                    status_color = '🟡'
+                    status_text = "GOOD"
+                else:
+                    status_color = '🔴'
+                    status_text = "NEEDS IMPROVEMENT"
+                
+                lines.append(f"**Performance Score:** {performance_pct:.0f}/100 {status_color} {status_text}\n\n")
+                
+                # Latency distribution bar chart
+                lines.append("**Latency Distribution:**\n\n")
                 lines.append("```\n")
-                # Sample up to 60 points
-                step = max(1, len(latencies) // 60)
-                sampled = latencies[::step]
-                sparkline = self.create_sparkline(sampled, width=60)
-                lines.append(f"{sparkline}\n")
-                lines.append(f"Showing {len(sampled)} samples over {count} total invocations\n")
+                chart = self.create_bar_chart(
+                    [min_lat, avg_lat, max_lat],
+                    [f"Best:    {min_lat:>6.0f}ms", f"Average: {avg_lat:>6.0f}ms", f"Worst:   {max_lat:>6.0f}ms"],
+                    width=50
+                )
+                lines.append(chart + "\n")
                 lines.append("```\n\n")
-            
-            # Target vs Actual comparison
-            lines.append("**Target vs Actual:**\n\n")
-            lines.append("```\n")
-            lines.append(f"Target:  {target_lat:>6}ms ")
-            target_bar = self.create_progress_bar(target_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
-            lines.append(target_bar + "\n")
-            lines.append(f"Actual:  {avg_lat:>6.0f}ms ")
-            actual_bar = self.create_progress_bar(avg_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
-            lines.append(actual_bar + "\n")
-            
-            if avg_lat < target_lat:
-                diff_pct = ((target_lat - avg_lat) / target_lat) * 100
-                lines.append(f"\n✨ {diff_pct:.0f}% faster than target!\n")
-            elif avg_lat > target_lat:
-                diff_pct = ((avg_lat - target_lat) / target_lat) * 100
-                lines.append(f"\n⚠️  {diff_pct:.0f}% slower than target\n")
+                
+                # Latency trend sparkline
+                if len(latencies) > 1:
+                    lines.append("**Latency Trend:**\n\n")
+                    lines.append("```\n")
+                    # Sample up to 60 points
+                    step = max(1, len(latencies) // 60)
+                    sampled = latencies[::step]
+                    sparkline = self.create_sparkline(sampled, width=60)
+                    lines.append(f"{sparkline}\n")
+                    lines.append(f"Showing {len(sampled)} samples over {count} total invocations\n")
+                    lines.append("```\n\n")
+                
+                # Target vs Actual comparison
+                lines.append("**Target vs Actual:**\n\n")
+                lines.append("```\n")
+                lines.append(f"Target:  {target_lat:>6}ms ")
+                target_bar = self.create_progress_bar(target_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
+                lines.append(target_bar + "\n")
+                lines.append(f"Actual:  {avg_lat:>6.0f}ms ")
+                actual_bar = self.create_progress_bar(avg_lat, max(target_lat * 2, max_lat), {target_lat: '🟢', target_lat * 2: '🔴'})
+                lines.append(actual_bar + "\n")
+                
+                if avg_lat < target_lat:
+                    diff_pct = ((target_lat - avg_lat) / target_lat) * 100
+                    lines.append(f"\n✨ {diff_pct:.0f}% faster than target!\n")
+                elif avg_lat > target_lat:
+                    diff_pct = ((avg_lat - target_lat) / target_lat) * 100
+                    lines.append(f"\n⚠️  {diff_pct:.0f}% slower than target\n")
+                else:
+                    lines.append(f"\n✅ Exactly on target!\n")
+                
+                lines.append("```\n\n")
             else:
-                lines.append(f"\n✅ Exactly on target!\n")
+                # No performance data yet
+                lines.append("**Performance Metrics:**\n\n")
+                lines.append("*No performance data collected yet. Model is configured but hasn't been invoked.*\n\n")
+                lines.append(f"- **Target:** {target_desc}\n\n")
             
-            lines.append("```\n\n")
             lines.append("---\n\n")
         
         return lines
