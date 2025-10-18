@@ -166,14 +166,10 @@ class PlutoOrchestrator:
             self.monitor_thread = threading.Thread(target=self._health_monitor, daemon=True)
             self.monitor_thread.start()
         
-        # Start vision event monitor with timeout fallback (NEW: Reflex agent behavior)
+        # Start vision event monitor (NEW: Reflex agent behavior)
         if self.enable_vision:
             self.vision_monitor_thread = threading.Thread(target=self._vision_event_monitor, daemon=True)
             self.vision_monitor_thread.start()
-            
-            # Start vision timeout monitor - falls back to voice-only after 10 seconds
-            vision_timeout_thread = threading.Thread(target=self._vision_timeout_monitor, daemon=True)
-            vision_timeout_thread.start()
         
         print("="*70)
         if self.enable_vision:
@@ -199,46 +195,6 @@ class PlutoOrchestrator:
                 
                 if stt_depth > 0 or llm_depth > 0:
                     self.metrics.log_metric('system', 'queue_depth', stt_depth + llm_depth, 'items')
-    
-    def _vision_timeout_monitor(self):
-        """
-        Monitor vision system and fallback to voice-only mode if camera fails
-        
-        If no vision events received within 10 seconds, assume camera issue and:
-        1. Announce to user that vision is unavailable
-        2. Enable voice-only mode (STT always listening)
-        3. Continue as voice assistant without vision
-        """
-        print("⏱️  Vision timeout monitor started (10 second grace period)")
-        time.sleep(10)  # Wait 10 seconds for vision to work
-        
-        # Check if vision worker is actually producing events
-        if self.running and self.enable_vision:
-            # Check if we're still in IDLE (no face detected in 10 seconds)
-            if self.agent_state.current_state == AgentState.IDLE:
-                print("\n" + "="*70)
-                print("⚠️  VISION TIMEOUT - Camera not detecting faces")
-                print("   Falling back to VOICE-ONLY mode")
-                print("="*70 + "\n")
-                
-                # Disable vision mode
-                self.enable_vision = False
-                
-                # Enable STT (voice detection) immediately
-                self.stt_worker.resume()
-                
-                # Send announcement via TTS
-                fallback_message = {
-                    'text': "I can't see you right now, but I'm all ears and listening. Just start talking to me!",
-                    'priority': 'high'
-                }
-                self.llm_to_tts_queue.put(fallback_message)
-                
-                # Log the fallback
-                self.reporter.log_warning("Vision timeout - Fallback to voice-only mode")
-                self.reporter.log_conversation_event('vision_fallback', 'Switched to voice-only mode after 10s timeout')
-                
-                print("🎙️  Voice-only mode active - Start speaking!")
     
     def _vision_event_monitor(self):
         """
