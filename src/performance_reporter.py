@@ -668,15 +668,12 @@ class PerformanceReporter:
     def _generate_latency_diagrams(self) -> List[str]:
         """Generate latency performance diagrams with ASCII charts"""
         lines = []
-        lines.append("=" * 80)
-        lines.append("⏱️  LATENCY PERFORMANCE ANALYSIS")
-        lines.append("=" * 80)
-        lines.append("")
+        lines.append("## ⏱️ Latency Performance Analysis\n\n")
         
         # Component latency comparison with bar chart
         if self.component_latencies:
-            lines.append("COMPONENT COMPARISON (Average Latency)")
-            lines.append("-" * 80)
+            lines.append("### Component Comparison (Average Latency)\n\n")
+            lines.append("```\n")
             
             values = []
             labels = []
@@ -688,14 +685,13 @@ class PerformanceReporter:
                     
                     icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
                     label = component.upper() if component != 'total' else 'END-TO-END'
-                    labels.append(f"{icon} {label}")
+                    labels.append(f"{icon} {label}: {avg:.0f}ms")
             
-            lines.append(self.create_bar_chart(values, labels, width=50))
-            lines.append("")
+            lines.append(self.create_bar_chart(values, labels, width=50) + "\n")
+            lines.append("```\n\n")
             
             # Target vs Actual comparison
-            lines.append("TARGET vs ACTUAL PERFORMANCE")
-            lines.append("-" * 80)
+            lines.append("### Target vs Actual Performance\n\n")
             
             targets = {'stt': 200, 'llm': 1500, 'tts': 150, 'total': 2000}
             for component in ['stt', 'llm', 'tts', 'total']:
@@ -707,14 +703,26 @@ class PerformanceReporter:
                     icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
                     label = component.upper() if component != 'total' else 'END-TO-END'
                     
-                    lines.append(f"{icon} {label:<12}")
-                    lines.append(f"   Target:  {self.create_progress_bar(target, max(actual, target) * 1.2, width=40)}")
-                    lines.append(f"   Actual:  {self.create_progress_bar(actual, max(actual, target) * 1.2, width=40)}")
-                    lines.append("")
+                    lines.append(f"**{icon} {label}**\n\n")
+                    lines.append("```\n")
+                    lines.append(f"Target: {target:>6}ms ")
+                    lines.append(self.create_progress_bar(target, max(actual, target) * 1.2, {target: '🟢', target * 2: '🔴'}) + "\n")
+                    lines.append(f"Actual: {actual:>6.0f}ms ")
+                    lines.append(self.create_progress_bar(actual, max(actual, target) * 1.2, {target: '🟢', target * 2: '🔴'}) + "\n")
+                    
+                    if actual < target:
+                        perf_pct = ((target - actual) / target) * 100
+                        lines.append(f"Performance: {perf_pct:.0f}% faster than target 🟢\n")
+                    elif actual > target:
+                        perf_pct = ((actual - target) / target) * 100
+                        lines.append(f"Performance: {perf_pct:.0f}% slower than target 🔴\n")
+                    else:
+                        lines.append(f"Performance: Exactly on target ✅\n")
+                    
+                    lines.append("```\n\n")
         
         # Latency trends with sparklines
-        lines.append("RESPONSE TIME TRENDS")
-        lines.append("-" * 80)
+        lines.append("### Response Time Trends\n\n")
         
         for component in ['stt', 'llm', 'tts', 'total']:
             if component not in self.component_latencies:
@@ -732,97 +740,11 @@ class PerformanceReporter:
             max_lat = max(latencies)
             avg_lat = sum(latencies) / len(latencies)
             
+            lines.append(f"**{icon} {label}**\n\n")
+            lines.append("```\n")
             sparkline = self.create_sparkline(latencies, width=60)
-            lines.append(f"{icon} {label:<12} {sparkline}")
-            lines.append(f"{'':15} Min: {min_lat:.0f}ms | Avg: {avg_lat:.0f}ms | Max: {max_lat:.0f}ms")
-            lines.append("")
-        
-        lines.append("=" * 80)
-        lines.append("")
-        return lines
-        
-        # Component latency comparison with color coding
-        if self.component_latencies:
-            lines.append("### Component Breakdown (Average)\n\n")
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base'}}%%\n")
-            lines.append("graph TD\n")
-            
-            # Calculate averages and determine status
-            component_data = {}
-            for component in ['stt', 'llm', 'tts', 'total']:
-                if component in self.component_latencies:
-                    samples = self.component_latencies[component]
-                    avg = sum(lat for _, lat in samples) / len(samples)
-                    component_data[component] = avg
-                    
-                    # Determine status and color
-                    status = self._get_latency_status(component, avg)
-                    
-                    if '🟢' in status:
-                        style = ":::excellent"
-                    elif '🟡' in status:
-                        style = ":::warning"
-                    else:
-                        style = ":::critical"
-                    
-                    icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
-                    lines.append(f"    {component.upper()}[\"{icon} {component.upper()}<br/>{avg:.0f}ms<br/>{status}\"]{style}\n")
-            
-            lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff\n")
-            lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff\n")
-            lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff\n")
-            lines.append("```\n\n")
-            
-            # Target vs Actual comparison
-            lines.append("### Performance vs Targets\n\n")
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base'}}%%\n")
-            lines.append("xychart-beta\n")
-            lines.append("    title \"Latency: Target vs Actual\"\n")
-            lines.append("    x-axis [STT, LLM, TTS, Total]\n")
-            lines.append("    y-axis \"Latency (ms)\" 0 --> " + str(int(max(component_data.values()) * 1.3)) + "\n")
-            
-            # Target values
-            targets = [200, 1500, 150, 2000]
-            target_str = ", ".join(str(t) for t in targets)
-            
-            # Actual values (in order: STT, LLM, TTS, Total)
-            actuals = [
-                component_data.get('stt', 0),
-                component_data.get('llm', 0),
-                component_data.get('tts', 0),
-                component_data.get('total', 0)
-            ]
-            actual_str = ", ".join(f"{a:.0f}" for a in actuals)
-            
-            lines.append(f"    bar \"🎯 Target\" [{target_str}]\n")
-            lines.append(f"    bar \"📊 Actual\" [{actual_str}]\n")
-            lines.append("```\n\n")
-        
-        # Latency over time (line chart data)
-        lines.append("### Response Time Trends\n\n")
-        
-        for component in ['stt', 'llm', 'tts', 'total']:
-            if component not in self.component_latencies:
-                continue
-            
-            samples = self.component_latencies[component]
-            if not samples:
-                continue
-            
-            lines.append(f"#### {component.upper()} Latency Timeline\n\n")
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base', 'themeVariables': {'xyChart': {'backgroundColor': 'transparent'}}}}%%\n")
-            lines.append("xychart-beta\n")
-            lines.append(f"    title \"{component.upper()} Response Time\"\n")
-            lines.append("    x-axis [" + ", ".join(f"{i+1}" for i in range(min(20, len(samples)))) + "]\n")
-            
-            # Take last 20 samples
-            recent_samples = samples[-20:]
-            latencies = [f"{lat:.0f}" for _, lat in recent_samples]
-            lines.append("    y-axis \"Latency (ms)\" 0 --> " + str(int(max(lat for _, lat in recent_samples) * 1.2)) + "\n")
-            lines.append("    line [" + ", ".join(latencies) + "]\n")
+            lines.append(f"{sparkline}\n")
+            lines.append(f"Min: {min_lat:.0f}ms  Avg: {avg_lat:.0f}ms  Max: {max_lat:.0f}ms\n")
             lines.append("```\n\n")
         
         lines.append("---\n\n")
