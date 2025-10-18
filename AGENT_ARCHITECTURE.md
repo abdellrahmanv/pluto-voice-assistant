@@ -204,7 +204,7 @@
 - `face_lost` - Locked face disappeared
 
 **Performance**:
-- ~100ms per frame (Raspberry Pi 5)
+- ~100ms per frame (Raspberry Pi 4)
 - 10 FPS target
 - Face confidence threshold: 0.6
 
@@ -500,7 +500,7 @@ if not stt_worker.start():
 - **TTS**: <150ms (typically 100-150ms)
 - **Total**: <2000ms (typically 1200-1500ms)
 
-### **Resource Usage** (Raspberry Pi 5):
+### **Resource Usage** (Raspberry Pi 4 - 4GB RAM):
 - **CPU**: 40-60% during conversation
 - **Memory**: 1.2-1.5 GB RAM
 - **Temperature**: 55-65°C (with heatsink)
@@ -543,11 +543,11 @@ if not stt_worker.start():
 
 ## 🚀 Deployment Architecture
 
-### **Raspberry Pi 5 Setup**:
+### **Raspberry Pi 4 Setup**:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Raspberry Pi 5 (8GB RAM)                   │
+│              Raspberry Pi 4 (4GB RAM)                   │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  🐧 Raspberry Pi OS (64-bit)                           │

@@ -188,8 +188,10 @@
 
 ```
 ╔════════════════════════════════════╗
-║      RASPBERRY PI 5 SETUP          ║
+║      RASPBERRY PI 4 SETUP          ║
 ╠════════════════════════════════════╣
+║  • Hardware: Raspberry Pi 4        ║
+║  • RAM: 4GB                        ║
 ║  • OS: Linux                       ║
 ║  • LLM Server: Ollama (local)      ║
 ║  • Models: All running locally     ║
