@@ -89,9 +89,15 @@ class PerformanceReporter:
         return "".join(spark[:width])
     
     @staticmethod
-    def create_progress_bar(value: float, max_value: float, width: int = 40, 
-                          thresholds: Dict[str, float] = None) -> str:
-        """Create colored progress bar with thresholds"""
+    def create_progress_bar(value: float, max_value: float, thresholds: Dict[float, str] = None, width: int = 40) -> str:
+        """Create colored progress bar with thresholds
+        
+        Args:
+            value: Current value
+            max_value: Maximum value for the bar
+            thresholds: Dict mapping threshold values to color emojis {threshold: '🟢'}
+            width: Width of the bar in characters
+        """
         if max_value == 0:
             return "█" * width
         
@@ -99,18 +105,21 @@ class PerformanceReporter:
         filled = int(percentage * width)
         empty = width - filled
         
-        # Determine color based on thresholds
-        color = "🟢"
+        # Determine color based on thresholds (dict of {value: emoji})
+        color = "⚪"  # default white
         if thresholds:
-            if 'critical' in thresholds and value >= thresholds['critical']:
-                color = "🔴"
-            elif 'warning' in thresholds and value >= thresholds['warning']:
-                color = "🟡"
-            elif 'good' in thresholds and value <= thresholds['good']:
-                color = "🟢"
+            # Sort thresholds and find appropriate color
+            sorted_thresholds = sorted(thresholds.items(), key=lambda x: x[0])
+            for threshold_val, emoji in sorted_thresholds:
+                if value <= threshold_val:
+                    color = emoji
+                    break
+            else:
+                # If value exceeds all thresholds, use the last one
+                color = sorted_thresholds[-1][1]
         
         bar = "█" * filled + "░" * empty
-        return f"{color} {bar} {value:.1f}/{max_value:.0f}"
+        return f"{bar} {percentage*100:.0f}% {color}"
     
     @staticmethod
     def create_box(text: str, width: int = 60, color: str = "blue") -> str:
