@@ -37,6 +37,9 @@ if __name__ == "__main__":
         print("   Just start talking - I'm always listening!\n")
         
         if orchestrator.start():
+            # IMPORTANT: Resume STT worker since there's no vision to activate it
+            orchestrator.stt_worker.resume()
+            print("▶️  STT activated - Listening for your voice now!\n")
             # Keep running until interrupted
             import time
             while orchestrator.running:
