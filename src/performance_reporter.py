@@ -1,6 +1,6 @@
 """
 🪐 Project Pluto - Performance Diagram Reporter
-Generates visual Markdown reports with Mermaid diagrams for system performance
+Generates visual ASCII/Unicode reports with terminal-friendly graphs
 """
 
 import psutil
@@ -13,7 +13,7 @@ from collections import defaultdict
 
 class PerformanceReporter:
     """
-    Generate comprehensive performance reports with diagrams
+    Generate comprehensive performance reports with ASCII/Unicode graphs
     Tracks: latency, CPU, memory, temperature over time
     """
     
@@ -37,6 +37,130 @@ class PerformanceReporter:
         self.monitoring_active = False
         
         print(f"📊 Performance Reporter initialized - Session: {self.session_id}")
+    
+    @staticmethod
+    def create_bar_chart(values: List[float], labels: List[str], width: int = 50, title: str = "") -> str:
+        """Create ASCII horizontal bar chart"""
+        if not values or not labels:
+            return ""
+        
+        max_val = max(values) if values else 1
+        max_label_len = max(len(str(l)) for l in labels)
+        
+        lines = []
+        if title:
+            lines.append(f"\n{title}")
+            lines.append("=" * (width + max_label_len + 20))
+        
+        for label, value in zip(labels, values):
+            bar_len = int((value / max_val) * width) if max_val > 0 else 0
+            bar = "█" * bar_len
+            percentage = (value / max_val * 100) if max_val > 0 else 0
+            lines.append(f"{label:<{max_label_len}} │ {bar} {value:.0f} ({percentage:.0f}%)")
+        
+        return "\n".join(lines)
+    
+    @staticmethod
+    def create_sparkline(values: List[float], width: int = 40) -> str:
+        """Create Unicode sparkline chart"""
+        if not values:
+            return ""
+        
+        # Unicode block elements for sparklines
+        blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+        
+        min_val = min(values)
+        max_val = max(values)
+        range_val = max_val - min_val if max_val > min_val else 1
+        
+        # Normalize and map to blocks
+        spark = []
+        step = len(values) // width if len(values) > width else 1
+        
+        for i in range(0, len(values), step):
+            val = values[i]
+            normalized = (val - min_val) / range_val
+            block_idx = min(int(normalized * len(blocks)), len(blocks) - 1)
+            spark.append(blocks[block_idx])
+        
+        return "".join(spark[:width])
+    
+    @staticmethod
+    def create_progress_bar(value: float, max_value: float, width: int = 40, 
+                          thresholds: Dict[str, float] = None) -> str:
+        """Create colored progress bar with thresholds"""
+        if max_value == 0:
+            return "█" * width
+        
+        percentage = min(value / max_value, 1.0)
+        filled = int(percentage * width)
+        empty = width - filled
+        
+        # Determine color based on thresholds
+        color = "🟢"
+        if thresholds:
+            if 'critical' in thresholds and value >= thresholds['critical']:
+                color = "🔴"
+            elif 'warning' in thresholds and value >= thresholds['warning']:
+                color = "🟡"
+            elif 'good' in thresholds and value <= thresholds['good']:
+                color = "🟢"
+        
+        bar = "█" * filled + "░" * empty
+        return f"{color} {bar} {value:.1f}/{max_value:.0f}"
+    
+    @staticmethod
+    def create_box(text: str, width: int = 60, color: str = "blue") -> str:
+        """Create colored box around text"""
+        # Color codes
+        colors = {
+            'green': '🟢',
+            'yellow': '🟡',
+            'red': '🔴',
+            'blue': '🔵',
+            'white': '⚪'
+        }
+        
+        icon = colors.get(color, '⚪')
+        
+        lines = text.split('\n')
+        box_lines = []
+        
+        # Top border
+        box_lines.append(f"╔{'═' * (width - 2)}╗")
+        
+        # Content
+        for line in lines:
+            padding = width - len(line) - 4
+            box_lines.append(f"║ {icon} {line}{' ' * padding}║")
+        
+        # Bottom border
+        box_lines.append(f"╚{'═' * (width - 2)}╝")
+        
+        return "\n".join(box_lines)
+    
+    @staticmethod
+    def create_gauge(value: float, max_value: float, label: str, thresholds: Dict = None) -> str:
+        """Create ASCII gauge/meter"""
+        percentage = min(value / max_value * 100, 100) if max_value > 0 else 0
+        
+        # Determine status
+        status = "NORMAL"
+        color = "🟢"
+        if thresholds:
+            if 'critical' in thresholds and value >= thresholds['critical']:
+                status = "CRITICAL"
+                color = "🔴"
+            elif 'warning' in thresholds and value >= thresholds['warning']:
+                status = "WARNING"
+                color = "🟡"
+        
+        # Create gauge
+        width = 30
+        filled = int(percentage / 100 * width)
+        bar = "█" * filled + "░" * (width - filled)
+        
+        return f"{label:<20} {color} [{bar}] {value:.1f} ({percentage:.0f}%) - {status}"
     
     def start_monitoring(self, interval: float = 2.0):
         """Start background system monitoring"""
@@ -174,9 +298,12 @@ class PerformanceReporter:
         return output_path
     
     def _generate_summary_section(self) -> List[str]:
-        """Generate executive summary section with performance scoring - DIAGRAMS ONLY"""
+        """Generate executive summary section with ASCII graphs"""
         lines = []
-        lines.append("## 📊 Performance Score\n\n")
+        lines.append("=" * 80)
+        lines.append("📊 PERFORMANCE SUMMARY")
+        lines.append("=" * 80)
+        lines.append("")
         
         # Count statistics
         total_conversations = sum(1 for _, evt, _ in self.conversation_events if evt == 'conversation_start')
@@ -199,132 +326,59 @@ class PerformanceReporter:
         scores = self._calculate_performance_scores(avg_latencies, avg_cpu, peak_temp)
         overall_score = scores['overall']
         
-        # Overall Score Gauge (horizontal bar style)
-        lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base', 'themeVariables': {'fontSize': '20px'}}}%%\n")
-        lines.append("graph LR\n")
-        lines.append(f"    START[\" \"]:::hidden\n")
+        # Overall Score Box
+        score_text = f"{scores['grade']} - {overall_score}/100"
+        color = 'green' if overall_score >= 80 else 'yellow' if overall_score >= 60 else 'red'
+        lines.append(self.create_box(score_text, width=50, color=color))
+        lines.append("")
         
-        # Score bar segments
-        if overall_score >= 85:
-            lines.append(f"    SCORE[\"⭐ EXCELLENT<br/>{overall_score}/100\"]:::excellent\n")
-        elif overall_score >= 70:
-            lines.append(f"    SCORE[\"✅ GOOD<br/>{overall_score}/100\"]:::good\n")
-        elif overall_score >= 50:
-            lines.append(f"    SCORE[\"⚠️ NEEDS IMPROVEMENT<br/>{overall_score}/100\"]:::warning\n")
-        else:
-            lines.append(f"    SCORE[\"❌ POOR<br/>{overall_score}/100\"]:::critical\n")
+        # Session Statistics
+        lines.append("SESSION STATISTICS")
+        lines.append("-" * 80)
+        lines.append(f"💬 Conversations: {total_conversations}")
+        lines.append(f"{'✅ No Errors' if total_errors == 0 else f'❌ Errors: {total_errors}'}")
+        lines.append(f"{'✅ No Warnings' if total_warnings == 0 else f'⚠️ Warnings: {total_warnings}'}")
+        lines.append("")
         
-        lines.append("    START --> SCORE\n")
-        lines.append("    classDef hidden fill:none,stroke:none\n")
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:4px,color:#fff,font-size:20px\n")
-        lines.append("    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:4px,color:#fff,font-size:20px\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:4px,color:#fff,font-size:20px\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:4px,color:#fff,font-size:20px\n")
-        lines.append("```\n\n")
+        # Latency Performance Gauges
+        lines.append("LATENCY PERFORMANCE")
+        lines.append("-" * 80)
         
-        # Session Stats Diagram
-        lines.append("### Session Statistics\n\n")
-        lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base'}}%%\n")
-        lines.append("graph TD\n")
-        
-        # Conversations
-        conv_style = ":::good" if total_conversations > 0 else ":::warning"
-        lines.append(f"    CONV[\"💬 Conversations<br/>{total_conversations}\"]" + conv_style + "\n")
-        
-        # Errors
-        if total_errors == 0:
-            lines.append(f"    ERR[\"✅ Errors<br/>{total_errors}\"]:::excellent\n")
-        elif total_errors < 5:
-            lines.append(f"    WARN[\"⚠️ Errors<br/>{total_errors}\"]:::warning\n")
-        else:
-            lines.append(f"    ERR[\"❌ Errors<br/>{total_errors}\"]:::critical\n")
-        
-        # Warnings
-        if total_warnings == 0:
-            lines.append(f"    WARNINGS[\"✅ Warnings<br/>{total_warnings}\"]:::excellent\n")
-        elif total_warnings < 10:
-            lines.append(f"    WARNINGS[\"⚠️ Warnings<br/>{total_warnings}\"]:::warning\n")
-        else:
-            lines.append(f"    WARNINGS[\"⚠️ Warnings<br/>{total_warnings}\"]:::critical\n")
-        
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef good fill:#3b82f6,stroke:#2563eb,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
-        lines.append("```\n\n")
-        
-        # Latency Performance Boxes
-        lines.append("### Latency Performance\n\n")
-        lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base'}}%%\n")
-        lines.append("graph TD\n")
+        thresholds_latency = {
+            'stt': {'warning': 300, 'critical': 500},
+            'llm': {'warning': 2000, 'critical': 3000},
+            'tts': {'warning': 250, 'critical': 400},
+            'total': {'warning': 3000, 'critical': 4000}
+        }
         
         for component in ['stt', 'llm', 'tts', 'total']:
             if component in avg_latencies:
                 lat = avg_latencies[component]
-                status = self._get_latency_status(component, lat)
+                label = f"🎤 STT" if component == 'stt' else \
+                       f"🧠 LLM" if component == 'llm' else \
+                       f"🔊 TTS" if component == 'tts' else \
+                       f"⏱️  TOTAL"
                 
-                if '🟢' in status:
-                    style = ":::excellent"
-                elif '🟡' in status:
-                    style = ":::warning"
-                else:
-                    style = ":::critical"
-                
-                icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
-                label = component.upper() if component != 'total' else 'TOTAL'
-                lines.append(f"    {component.upper()}[\"{icon} {label}<br/>{lat:.0f}ms<br/>{status}\"]{style}\n")
+                max_val = 5000 if component == 'total' else 3500 if component == 'llm' else 600
+                lines.append(self.create_gauge(lat, max_val, label, thresholds_latency.get(component)))
         
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
-        lines.append("```\n\n")
+        lines.append("")
         
-        # System Resources Boxes
-        lines.append("### System Resources\n\n")
-        lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base'}}%%\n")
-        lines.append("graph TD\n")
+        # System Resources Gauges
+        lines.append("SYSTEM RESOURCES")
+        lines.append("-" * 80)
         
-        # CPU
-        cpu_status = self._get_cpu_status(avg_cpu)
-        if '🟢' in cpu_status:
-            cpu_style = ":::excellent"
-        elif '🟡' in cpu_status:
-            cpu_style = ":::warning"
-        else:
-            cpu_style = ":::critical"
-        lines.append(f"    CPU[\"💻 CPU<br/>{avg_cpu:.1f}%<br/>{cpu_status}\"]{cpu_style}\n")
+        lines.append(self.create_gauge(avg_cpu, 100, "� CPU Usage", 
+                                      {'warning': 70, 'critical': 85}))
+        lines.append(self.create_gauge(avg_mem, 4000, "🧠 Memory (MB)", 
+                                      {'warning': 2500, 'critical': 3500}))
+        if peak_temp > 0:
+            lines.append(self.create_gauge(peak_temp, 100, "🌡️  Temperature (°C)", 
+                                          {'warning': 75, 'critical': 85}))
         
-        # Memory
-        mem_status = self._get_memory_status(avg_mem)
-        if '🟢' in mem_status:
-            mem_style = ":::excellent"
-        elif '🟡' in mem_status:
-            mem_style = ":::warning"
-        else:
-            mem_style = ":::critical"
-        lines.append(f"    MEM[\"🧠 Memory<br/>{avg_mem:.0f}MB<br/>{mem_status}\"]{mem_style}\n")
-        
-        # Temperature
-        if self.temp_samples and peak_temp > 0:
-            temp_status = self._get_temp_status(peak_temp)
-            if '🟢' in temp_status:
-                temp_style = ":::excellent"
-            elif '🟡' in temp_status or '🟠' in temp_status:
-                temp_style = ":::warning"
-            else:
-                temp_style = ":::critical"
-            lines.append(f"    TEMP[\"🌡️ Temperature<br/>{peak_temp:.1f}°C<br/>{temp_status}\"]{temp_style}\n")
-        
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:3px,color:#fff\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,stroke-width:3px,color:#fff\n")
-        lines.append("```\n\n")
-        
-        lines.append("---\n\n")
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("")
         return lines
     
     def _calculate_performance_scores(self, latencies: Dict[str, float], cpu: float, temp: float) -> Dict[str, Any]:
@@ -459,9 +513,80 @@ class PerformanceReporter:
             return "🔴 Critical"
     
     def _generate_latency_diagrams(self) -> List[str]:
-        """Generate latency performance diagrams"""
+        """Generate latency performance diagrams with ASCII charts"""
         lines = []
-        lines.append("## ⏱️ Latency Performance Analysis\n\n")
+        lines.append("=" * 80)
+        lines.append("⏱️  LATENCY PERFORMANCE ANALYSIS")
+        lines.append("=" * 80)
+        lines.append("")
+        
+        # Component latency comparison with bar chart
+        if self.component_latencies:
+            lines.append("COMPONENT COMPARISON (Average Latency)")
+            lines.append("-" * 80)
+            
+            values = []
+            labels = []
+            for component in ['stt', 'llm', 'tts', 'total']:
+                if component in self.component_latencies:
+                    samples = self.component_latencies[component]
+                    avg = sum(lat for _, lat in samples) / len(samples)
+                    values.append(avg)
+                    
+                    icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
+                    label = component.upper() if component != 'total' else 'END-TO-END'
+                    labels.append(f"{icon} {label}")
+            
+            lines.append(self.create_bar_chart(values, labels, width=50))
+            lines.append("")
+            
+            # Target vs Actual comparison
+            lines.append("TARGET vs ACTUAL PERFORMANCE")
+            lines.append("-" * 80)
+            
+            targets = {'stt': 200, 'llm': 1500, 'tts': 150, 'total': 2000}
+            for component in ['stt', 'llm', 'tts', 'total']:
+                if component in self.component_latencies:
+                    samples = self.component_latencies[component]
+                    actual = sum(lat for _, lat in samples) / len(samples)
+                    target = targets[component]
+                    
+                    icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
+                    label = component.upper() if component != 'total' else 'END-TO-END'
+                    
+                    lines.append(f"{icon} {label:<12}")
+                    lines.append(f"   Target:  {self.create_progress_bar(target, max(actual, target) * 1.2, width=40)}")
+                    lines.append(f"   Actual:  {self.create_progress_bar(actual, max(actual, target) * 1.2, width=40)}")
+                    lines.append("")
+        
+        # Latency trends with sparklines
+        lines.append("RESPONSE TIME TRENDS")
+        lines.append("-" * 80)
+        
+        for component in ['stt', 'llm', 'tts', 'total']:
+            if component not in self.component_latencies:
+                continue
+            
+            samples = self.component_latencies[component]
+            if not samples:
+                continue
+            
+            latencies = [lat for _, lat in samples]
+            icon = {'stt': '🎤', 'llm': '🧠', 'tts': '🔊', 'total': '⏱️'}.get(component, '')
+            label = component.upper() if component != 'total' else 'END-TO-END'
+            
+            min_lat = min(latencies)
+            max_lat = max(latencies)
+            avg_lat = sum(latencies) / len(latencies)
+            
+            sparkline = self.create_sparkline(latencies, width=60)
+            lines.append(f"{icon} {label:<12} {sparkline}")
+            lines.append(f"{'':15} Min: {min_lat:.0f}ms | Avg: {avg_lat:.0f}ms | Max: {max_lat:.0f}ms")
+            lines.append("")
+        
+        lines.append("=" * 80)
+        lines.append("")
+        return lines
         
         # Component latency comparison with color coding
         if self.component_latencies:
@@ -551,7 +676,7 @@ class PerformanceReporter:
         return lines
     
     def _generate_system_diagrams(self) -> List[str]:
-        """Generate system resource usage diagrams"""
+        """Generate system resource usage diagrams with ASCII/Unicode graphics"""
         lines = []
         lines.append("## 💻 System Resource Analysis\n\n")
         
@@ -561,106 +686,78 @@ class PerformanceReporter:
         avg_temp = sum(temp for _, temp in self.temp_samples) / len(self.temp_samples) if self.temp_samples else 0
         
         lines.append("### System Health Overview\n\n")
-        lines.append("```mermaid\n")
-        lines.append("%%{init: {'theme':'base'}}%%\n")
-        lines.append("graph TD\n")
         
-        # CPU status
+        # CPU gauge
         cpu_status = self._get_cpu_status(avg_cpu)
-        if '🟢' in cpu_status:
-            cpu_style = ":::excellent"
-        elif '🟡' in cpu_status:
-            cpu_style = ":::warning"
-        else:
-            cpu_style = ":::critical"
-        lines.append(f"    CPU[\"💻 CPU<br/>{avg_cpu:.1f}%<br/>{cpu_status}\"]{cpu_style}\n")
+        cpu_gauge = self.create_gauge(avg_cpu, 100, f"� CPU Usage: {avg_cpu:.1f}%", {50: '🟢', 70: '🟡', 100: '🔴'})
+        lines.append(cpu_gauge + "\n")
+        lines.append(f"Status: {cpu_status}\n\n")
         
-        # Memory status
+        # Memory gauge
         mem_status = self._get_memory_status(avg_mem)
-        if '🟢' in mem_status:
-            mem_style = ":::excellent"
-        elif '🟡' in mem_status:
-            mem_style = ":::warning"
-        else:
-            mem_style = ":::critical"
-        lines.append(f"    MEM[\"🧠 Memory<br/>{avg_mem:.0f}MB<br/>{mem_status}\"]{mem_style}\n")
+        mem_gauge = self.create_gauge(avg_mem, 4096, f"🧠 Memory Usage: {avg_mem:.0f}MB", {1500: '🟢', 2500: '🟡', 4096: '🔴'})
+        lines.append(mem_gauge + "\n")
+        lines.append(f"Status: {mem_status}\n\n")
         
-        # Temperature status (if available)
+        # Temperature gauge (if available)
         if self.temp_samples and avg_temp > 0:
             temp_status = self._get_temp_status(avg_temp)
-            if '🟢' in temp_status:
-                temp_style = ":::excellent"
-            elif '🟡' in temp_status or '🟠' in temp_status:
-                temp_style = ":::warning"
-            else:
-                temp_style = ":::critical"
-            lines.append(f"    TEMP[\"🌡️ Temperature<br/>{avg_temp:.1f}°C<br/>{temp_status}\"]{temp_style}\n")
+            temp_gauge = self.create_gauge(avg_temp, 100, f"🌡️ Temperature: {avg_temp:.1f}°C", {65: '🟢', 75: '🟡', 85: '🟠', 100: '🔴'})
+            lines.append(temp_gauge + "\n")
+            lines.append(f"Status: {temp_status}\n\n")
         
-        lines.append("    classDef excellent fill:#22c55e,stroke:#16a34a,color:#fff\n")
-        lines.append("    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff\n")
-        lines.append("    classDef critical fill:#ef4444,stroke:#dc2626,color:#fff\n")
-        lines.append("```\n\n")
+        lines.append("---\n\n")
         
-        # CPU Usage Chart
+        # CPU Usage Over Time with sparkline
         if self.cpu_samples:
-            lines.append("### CPU Usage Over Time\n\n")
+            lines.append("### 📊 CPU Usage Trend\n\n")
             
-            # Calculate thresholds
             max_cpu = max(cpu for _, cpu in self.cpu_samples)
-            lines.append(f"**Peak:** {max_cpu:.1f}% | **Average:** {avg_cpu:.1f}%\n\n")
+            min_cpu = min(cpu for _, cpu in self.cpu_samples)
             
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base'}}%%\n")
-            lines.append("xychart-beta\n")
-            lines.append("    title \"CPU Usage (Target: <50% Good, <70% OK)\"\n")
+            # Take samples for sparkline (max 60 points for terminal width)
+            step = max(1, len(self.cpu_samples) // 60)
+            sampled_cpu = [cpu for _, cpu in self.cpu_samples[::step]]
             
-            # Take samples every N to fit in chart (max 30 points)
-            step = max(1, len(self.cpu_samples) // 30)
-            sampled_cpu = self.cpu_samples[::step]
-            
-            lines.append("    x-axis [" + ", ".join(f"\"{i+1}\"" for i in range(len(sampled_cpu))) + "]\n")
-            lines.append("    y-axis \"CPU %\" 0 --> 100\n")
-            lines.append("    line [" + ", ".join(f"{cpu:.1f}" for _, cpu in sampled_cpu) + "]\n")
+            sparkline = self.create_sparkline(sampled_cpu, width=60)
+            lines.append("```\n")
+            lines.append(f"CPU Usage Over Time (Target: <50% Good, <70% OK)\n")
+            lines.append(f"{sparkline}\n")
+            lines.append(f"Min: {min_cpu:.1f}%  Avg: {avg_cpu:.1f}%  Max: {max_cpu:.1f}%  Current: {self.cpu_samples[-1][1]:.1f}%\n")
             lines.append("```\n\n")
         
-        # Memory Usage Chart
+        # Memory Usage Over Time with sparkline
         if self.memory_samples:
-            lines.append("### Memory Usage Over Time\n\n")
+            lines.append("### 🧠 Memory Usage Trend\n\n")
             
             max_mem = max(mem for _, mem in self.memory_samples)
-            lines.append(f"**Peak:** {max_mem:.0f}MB | **Average:** {avg_mem:.0f}MB\n\n")
+            min_mem = min(mem for _, mem in self.memory_samples)
             
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base'}}%%\n")
-            lines.append("xychart-beta\n")
-            lines.append("    title \"Memory Usage (Target: <1500MB Good, <2500MB OK)\"\n")
+            step = max(1, len(self.memory_samples) // 60)
+            sampled_mem = [mem for _, mem in self.memory_samples[::step]]
             
-            step = max(1, len(self.memory_samples) // 30)
-            sampled_mem = self.memory_samples[::step]
-            
-            lines.append("    x-axis [" + ", ".join(f"\"{i+1}\"" for i in range(len(sampled_mem))) + "]\n")
-            lines.append(f"    y-axis \"Memory (MB)\" 0 --> {int(max_mem * 1.2)}\n")
-            lines.append("    line [" + ", ".join(f"{mem:.0f}" for _, mem in sampled_mem) + "]\n")
+            sparkline = self.create_sparkline(sampled_mem, width=60)
+            lines.append("```\n")
+            lines.append(f"Memory Usage Over Time (Target: <1500MB Good, <2500MB OK)\n")
+            lines.append(f"{sparkline}\n")
+            lines.append(f"Min: {min_mem:.0f}MB  Avg: {avg_mem:.0f}MB  Max: {max_mem:.0f}MB  Current: {self.memory_samples[-1][1]:.0f}MB\n")
             lines.append("```\n\n")
         
-        # Temperature Chart (Raspberry Pi)
+        # Temperature Over Time with sparkline (Raspberry Pi)
         if self.temp_samples:
-            lines.append("### CPU Temperature Over Time\n\n")
+            lines.append("### 🌡️ Temperature Trend\n\n")
             
             max_temp = max(temp for _, temp in self.temp_samples)
-            lines.append(f"**Peak:** {max_temp:.1f}°C | **Average:** {avg_temp:.1f}°C\n\n")
+            min_temp = min(temp for _, temp in self.temp_samples)
             
-            lines.append("```mermaid\n")
-            lines.append("%%{init: {'theme':'base'}}%%\n")
-            lines.append("xychart-beta\n")
-            lines.append("    title \"CPU Temperature (Target: <65°C Cool, <75°C OK)\"\n")
+            step = max(1, len(self.temp_samples) // 60)
+            sampled_temp = [temp for _, temp in self.temp_samples[::step]]
             
-            step = max(1, len(self.temp_samples) // 30)
-            sampled_temp = self.temp_samples[::step]
-            
-            lines.append("    x-axis [" + ", ".join(f"\"{i+1}\"" for i in range(len(sampled_temp))) + "]\n")
-            lines.append("    y-axis \"Temperature (°C)\" 0 --> 100\n")
-            lines.append("    line [" + ", ".join(f"{temp:.1f}" for _, temp in sampled_temp) + "]\n")
+            sparkline = self.create_sparkline(sampled_temp, width=60)
+            lines.append("```\n")
+            lines.append(f"CPU Temperature Over Time (Target: <65°C Cool, <75°C OK)\n")
+            lines.append(f"{sparkline}\n")
+            lines.append(f"Min: {min_temp:.1f}°C  Avg: {avg_temp:.1f}°C  Max: {max_temp:.1f}°C  Current: {self.temp_samples[-1][1]:.1f}°C\n")
             lines.append("```\n\n")
             
             # Temperature warning with recommendations
@@ -729,7 +826,7 @@ class PerformanceReporter:
         return lines
     
     def _generate_statistics_tables(self) -> List[str]:
-        """Generate detailed statistics - DIAGRAMS ONLY"""
+        """Generate detailed statistics with ASCII bar charts"""
         lines = []
         lines.append("## 📈 Detailed Performance Metrics\n\n")
         
@@ -755,16 +852,18 @@ class PerformanceReporter:
                 label = component.upper() if component != 'total' else 'END-TO-END'
                 
                 lines.append(f"**{icon} {label}** ({count} samples)\n\n")
-                lines.append("```mermaid\n")
-                lines.append("%%{init: {'theme':'base'}}%%\n")
-                lines.append("xychart-beta\n")
-                lines.append(f"    title \"{label} Latency Distribution\"\n")
-                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
-                lines.append(f"    y-axis \"Latency (ms)\" 0 --> {int(max_lat * 1.1)}\n")
-                lines.append(f"    bar [{min_lat:.0f}, {mean_lat:.0f}, {max_lat:.0f}]\n")
+                lines.append("```\n")
+                
+                # Create bar chart for min/mean/max
+                chart = self.create_bar_chart(
+                    [min_lat, mean_lat, max_lat],
+                    [f"Min:  {min_lat:>6.0f}ms", f"Mean: {mean_lat:>6.0f}ms", f"Max:  {max_lat:>6.0f}ms"],
+                    width=50
+                )
+                lines.append(chart + "\n")
                 lines.append("```\n\n")
         
-        # System resource stats as gauge-style diagrams
+        # System resource stats as bar charts
         if self.cpu_samples or self.memory_samples or self.temp_samples:
             lines.append("### System Resource Range\n\n")
             
@@ -775,13 +874,13 @@ class PerformanceReporter:
                 mean_cpu = sum(cpu_vals) / len(cpu_vals)
                 
                 lines.append("**💻 CPU Usage**\n\n")
-                lines.append("```mermaid\n")
-                lines.append("%%{init: {'theme':'base'}}%%\n")
-                lines.append("xychart-beta\n")
-                lines.append("    title \"CPU Usage Distribution\"\n")
-                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
-                lines.append("    y-axis \"CPU %\" 0 --> 100\n")
-                lines.append(f"    bar [{min_cpu:.1f}, {mean_cpu:.1f}, {max_cpu:.1f}]\n")
+                lines.append("```\n")
+                chart = self.create_bar_chart(
+                    [min_cpu, mean_cpu, max_cpu],
+                    [f"Min:  {min_cpu:>5.1f}%", f"Mean: {mean_cpu:>5.1f}%", f"Max:  {max_cpu:>5.1f}%"],
+                    width=50
+                )
+                lines.append(chart + "\n")
                 lines.append("```\n\n")
             
             if self.memory_samples:
@@ -791,13 +890,13 @@ class PerformanceReporter:
                 mean_mem = sum(mem_vals) / len(mem_vals)
                 
                 lines.append("**🧠 Memory Usage**\n\n")
-                lines.append("```mermaid\n")
-                lines.append("%%{init: {'theme':'base'}}%%\n")
-                lines.append("xychart-beta\n")
-                lines.append("    title \"Memory Usage Distribution\"\n")
-                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
-                lines.append(f"    y-axis \"Memory (MB)\" 0 --> {int(max_mem * 1.2)}\n")
-                lines.append(f"    bar [{min_mem:.0f}, {mean_mem:.0f}, {max_mem:.0f}]\n")
+                lines.append("```\n")
+                chart = self.create_bar_chart(
+                    [min_mem, mean_mem, max_mem],
+                    [f"Min:  {min_mem:>6.0f}MB", f"Mean: {mean_mem:>6.0f}MB", f"Max:  {max_mem:>6.0f}MB"],
+                    width=50
+                )
+                lines.append(chart + "\n")
                 lines.append("```\n\n")
             
             if self.temp_samples:
@@ -807,13 +906,13 @@ class PerformanceReporter:
                 mean_temp = sum(temp_vals) / len(temp_vals)
                 
                 lines.append("**🌡️ CPU Temperature**\n\n")
-                lines.append("```mermaid\n")
-                lines.append("%%{init: {'theme':'base'}}%%\n")
-                lines.append("xychart-beta\n")
-                lines.append("    title \"Temperature Distribution\"\n")
-                lines.append("    x-axis [\"Min\", \"Mean\", \"Max\"]\n")
-                lines.append("    y-axis \"Temperature (°C)\" 0 --> 100\n")
-                lines.append(f"    bar [{min_temp:.1f}, {mean_temp:.1f}, {max_temp:.1f}]\n")
+                lines.append("```\n")
+                chart = self.create_bar_chart(
+                    [min_temp, mean_temp, max_temp],
+                    [f"Min:  {min_temp:>5.1f}°C", f"Mean: {mean_temp:>5.1f}°C", f"Max:  {max_temp:>5.1f}°C"],
+                    width=50
+                )
+                lines.append(chart + "\n")
                 lines.append("```\n\n")
         
         lines.append("---\n\n")
