@@ -1,6 +1,6 @@
 """
 🪐 Project Pluto - Orchestrator
-Main coordinator for 4-worker reflex agent (STT, LLM, TTS, Vision)
+Main coordinator for 3-worker voice assistant (STT, LLM, TTS)
 """
 
 import queue
@@ -13,24 +13,21 @@ from typing import Optional
 from datetime import datetime
 from pathlib import Path
 
-from config import QUEUE_CONFIG, ORCHESTRATOR_CONFIG, VISION_CONFIG, print_config_summary
+from config import QUEUE_CONFIG, ORCHESTRATOR_CONFIG, print_config_summary
 from metrics_logger import get_logger, close_logger
 from performance_reporter import get_reporter, close_reporter
 from workers import STTWorker, LLMWorker, TTSWorker
-from workers.vision_worker import VisionWorker
 from agent_state import AgentStateManager, AgentState
 
 
 class PlutoOrchestrator:
-    """Main orchestrator coordinating STT → LLM → TTS + Vision reflex agent"""
+    """Main orchestrator coordinating STT → LLM → TTS voice assistant"""
     
-    def __init__(self, enable_vision=True):
+    def __init__(self):
         """
         Initialize orchestrator
         
-        Args:
-            enable_vision: Enable vision worker (default: True)
-        """
+        Args:        """
         # Session tracking
         self.session_start_time = datetime.now()
         
@@ -40,9 +37,7 @@ class PlutoOrchestrator:
         
         # Queues
         self.stt_to_llm_queue = queue.Queue(maxsize=QUEUE_CONFIG["max_size"])
-        self.llm_to_tts_queue = queue.Queue(maxsize=QUEUE_CONFIG["max_size"])
-        self.vision_to_orchestrator_queue = queue.Queue(maxsize=QUEUE_CONFIG["max_size"])
-        
+        self.llm_to_tts_queue = queue.Queue(maxsize=QUEUE_CONFIG["max_size"])        
         # Metrics
         self.metrics = get_logger()
         
@@ -53,27 +48,11 @@ class PlutoOrchestrator:
         self.stt_worker = STTWorker(self.stt_to_llm_queue, self.metrics, self.reporter)
         self.llm_worker = LLMWorker(self.stt_to_llm_queue, self.llm_to_tts_queue, self.metrics, self.reporter)
         self.tts_worker = TTSWorker(self.llm_to_tts_queue, self.metrics, self.reporter)
-        
-        # Vision worker (optional)
-        self.enable_vision = enable_vision
-        self.vision_worker = None
-        if self.enable_vision:
-            try:
-                self.vision_worker = VisionWorker(self.vision_to_orchestrator_queue)
-                self.workers = [self.stt_worker, self.llm_worker, self.tts_worker, self.vision_worker]
-            except Exception as e:
-                print(f"⚠️  Vision worker initialization failed: {e}")
-                print(f"   Running without vision capabilities")
-                self.enable_vision = False
-                self.workers = [self.stt_worker, self.llm_worker, self.tts_worker]
-        else:
-            self.workers = [self.stt_worker, self.llm_worker, self.tts_worker]
+        self.workers = [self.stt_worker, self.llm_worker, self.tts_worker]
         
         # Control flags
         self.running = False
-        self.monitor_thread = None
-        self.vision_monitor_thread = None
-        
+        self.monitor_thread = None        
         # Conversation tracking
         self.conversation_start_time = None
         self.last_greeting_time = 0
@@ -83,42 +62,7 @@ class PlutoOrchestrator:
         signal.signal(signal.SIGTERM, self._signal_handler)
         
         print("\n" + "="*70)
-        print("🪐 PROJECT PLUTO - Reflex Agent Voice Assistant")
-        if self.enable_vision:
-            print("   With Vision-Driven Interaction")
-        print("="*70 + "\n")
-    
-    def initialize(self):
-        """Initialize all workers"""
-        print("🚀 Initializing workers...")
-        
-        print_config_summary()
-        print()
-        
-        all_ok = True
-        
-        if not self.stt_worker.start():
-            print("❌ STT Worker failed to start")
-            all_ok = False
-        
-        if not self.llm_worker.start():
-            print("❌ LLM Worker failed to start")
-            all_ok = False
-        
-        if not self.tts_worker.start():
-            print("❌ TTS Worker failed to start")
-            all_ok = False
-
-        # Start vision worker if enabled
-        if self.enable_vision and self.vision_worker:
-            if not self.vision_worker.start():
-                print("❌ Vision Worker failed to start")
-                all_ok = False
-
-        if all_ok:
-            print("\n✅ All workers initialized successfully\n")
-        else:
-            print("\n❌ Some workers failed to initialize\n")
+        print("🪐 PROJECT PLUTO - Reflex Agent Voice Assistant")        print("\n❌ Some workers failed to initialize\n")
             return False
         
         self._setup_queue_monitoring()
@@ -164,18 +108,8 @@ class PlutoOrchestrator:
         # Start health monitor
         if ORCHESTRATOR_CONFIG["health_monitoring"]:
             self.monitor_thread = threading.Thread(target=self._health_monitor, daemon=True)
-            self.monitor_thread.start()
-        
-        # Start vision event monitor (NEW: Reflex agent behavior)
-        if self.enable_vision:
-            self.vision_monitor_thread = threading.Thread(target=self._vision_event_monitor, daemon=True)
-            self.vision_monitor_thread.start()
-        
-        print("="*70)
-        if self.enable_vision:
-            print("👁️  PLUTO IS READY - Looking for people to talk to!")
-        else:
-            print("🎙️  PLUTO IS READY - Start speaking!")
+            self.monitor_thread.start()        
+        print("="*70)        print("🎙️  PLUTO IS READY - Start speaking!")
         print("   Press Ctrl+C to stop")
         print("="*70 + "\n")
         
@@ -194,35 +128,7 @@ class PlutoOrchestrator:
                 llm_depth = self.llm_to_tts_queue.qsize()
                 
                 if stt_depth > 0 or llm_depth > 0:
-                    self.metrics.log_metric('system', 'queue_depth', stt_depth + llm_depth, 'items')
-    
-    def _vision_event_monitor(self):
-        """
-        Monitor vision events and drive reflex agent behavior
-        
-        This is the core of the reflex agent:
-        - Detects new faces
-        - Locks onto a person
-        - Initiates greeting
-        - Manages conversation state
-        """
-        print("👁️  Vision event monitor started")
-        
-        while self.running:
-            try:
-                # Get vision event (non-blocking with timeout)
-                try:
-                    event = self.vision_to_orchestrator_queue.get(timeout=0.5)
-                except queue.Empty:
-                    continue
-                
-                # Handle vision events based on current state
-                self._handle_vision_event(event)
-                
-            except Exception as e:
-                print(f"⚠️  Vision monitor error: {e}")
-                time.sleep(0.1)
-    
+                    self.metrics.log_metric('system', 'queue_depth', stt_depth + llm_depth, 'items')    
     def _handle_vision_event(self, event: dict):
         """
         Handle vision events and update agent state
@@ -344,11 +250,7 @@ class PlutoOrchestrator:
             },
             'conversations': self.metrics.conversation_count,
             'agent_state': self.agent_state.get_state_info()
-        }
-        
-        if self.enable_vision:
-            status['queues']['vision_to_orchestrator'] = self.vision_to_orchestrator_queue.qsize()
-        
+        }        
         return status
     
     def print_status(self):
@@ -374,9 +276,7 @@ class PlutoOrchestrator:
             print(f"  {icon} {worker_status['name']}: {worker_status}")
         
         # Queues
-        queue_str = f"STT→LLM={status['queues']['stt_to_llm']}, LLM→TTS={status['queues']['llm_to_tts']}"
-        if 'vision_to_orchestrator' in status['queues']:
-            queue_str += f", Vision→Orch={status['queues']['vision_to_orchestrator']}"
+        queue_str = f"STT→LLM={status['queues']['stt_to_llm']}, LLM→TTS={status['queues']['llm_to_tts']}"            queue_str += f""
         print(f"\n📦 Queue Depths: {queue_str}")
         
         print(f"💬 Conversations: {status['conversations']}")
