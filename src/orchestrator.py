@@ -120,7 +120,8 @@ class PlutoOrchestrator:
         if ORCHESTRATOR_CONFIG["health_monitoring"]:
             self.monitor_thread = threading.Thread(target=self._health_monitor, daemon=True)
             self.monitor_thread.start()        
-        print("="*70)        print("🎙️  PLUTO IS READY - Start speaking!")
+        print("="*70)
+        print("🎙️  PLUTO IS READY - Start speaking!")
         print("   Press Ctrl+C to stop")
         print("="*70 + "\n")
         
@@ -287,9 +288,8 @@ class PlutoOrchestrator:
             print(f"  {icon} {worker_status['name']}: {worker_status}")
         
         # Queues
-        queue_str = f"STT→LLM={status['queues']['stt_to_llm']}, LLM→TTS={status['queues']['llm_to_tts']}"            queue_str += f""
+        queue_str = f"STT→LLM={status['queues']['stt_to_llm']}, LLM→TTS={status['queues']['llm_to_tts']}"
         print(f"\n📦 Queue Depths: {queue_str}")
-        
         print(f"💬 Conversations: {status['conversations']}")
         print("="*70 + "\n")
     
@@ -327,7 +327,6 @@ class PlutoOrchestrator:
         report_path = close_reporter()
         if report_path:
             print(f"✅ Performance report: {report_path}")
-        
         print("\n" + "="*70)
         print("🪐 PLUTO SHUTDOWN COMPLETE")
         print("="*70 + "\n")
