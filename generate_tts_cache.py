@@ -1,35 +1,52 @@
 #!/usr/bin/env python3
 """
-TTS Cache Manager
+TTS Cache Manager for Pluto Voice Assistant
 Pre-generate and cache common phrases for instant playback
+Repository: github.com/abdellrahmanv/pluto-voice-assistant
+Raspberry Pi 4B optimized
 """
 
 import subprocess
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Detect if we're in the pluto-voice-assistant directory
+PROJECT_ROOT = Path(__file__).parent
+if not (PROJECT_ROOT / "src").exists():
+    print("Error: Must run from pluto-voice-assistant directory")
+    print(f"Current directory: {PROJECT_ROOT}")
+    sys.exit(1)
 
-CACHE_DIR = Path("cache/tts")
+# Add src to path
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+CACHE_DIR = PROJECT_ROOT / "cache" / "tts"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 COMMON_PHRASES = {
-    "greeting": "Hi there! I'm Pluto, how can I help you today?",
+    "greeting": "Hi there! I'm Pluto, your voice assistant. How can I help you today?",
     "error": "Sorry, I didn't catch that. Could you repeat that?",
     "goodbye": "Goodbye! Have a great day!",
     "thinking": "Let me think about that for a moment.",
     "busy": "I'm processing something right now. Please wait.",
+    "no_face": "I can't see you, but I'm all ears! How can I help?",
+    "ready": "Pluto voice assistant is ready!",
 }
 
 def generate_cache():
+    """Generate TTS cache for Pluto voice assistant on Raspberry Pi"""
     try:
         from config import PIPER_CONFIG
     except ImportError:
         print("Error: Could not import config. Make sure src/config.py exists.")
+        print("Run from: ~/pluto-voice-assistant/")
         return False
     
-    print("TTS Cache Generation")
+    print("\nPluto Voice Assistant - TTS Cache Generation")
+    print("Repository: github.com/abdellrahmanv/pluto-voice-assistant")
+    print("=" * 60)
+    print(f"Piper model: {PIPER_CONFIG['model_path']}")
+    print(f"Cache location: {CACHE_DIR.absolute()}")
     print("=" * 60)
     
     for name, text in COMMON_PHRASES.items():
@@ -69,16 +86,22 @@ def generate_cache():
     print(f"Cache location: {CACHE_DIR.absolute()}")
     
     # List generated files
-    cache_files = list(CACHE_DIR.glob("*.wav"))
+    cache_files = sorted(CACHE_DIR.glob("*.wav"))
     if cache_files:
-        print(f"\nGenerated {len(cache_files)} files:")
+        print(f"\nGenerated {len(cache_files)} cached phrases:")
+        total_size = 0
         for f in cache_files:
             size_kb = f.stat().st_size / 1024
-            print(f"  - {f.name} ({size_kb:.1f} KB)")
+            total_size += size_kb
+            print(f"  - {f.name:20s} ({size_kb:6.1f} KB)")
+        print(f"\nTotal cache size: {total_size:.1f} KB")
+        print("\nThese phrases will now play instantly (0ms) instead of ~200ms!")
+        print("Run Pluto to test: python3 src/orchestrator.py")
     else:
         print("\nWarning: No cache files generated!")
+        print("Check that Piper is installed and configured correctly.")
     
-    return True
+    return len(cache_files) > 0
 
 if __name__ == "__main__":
     try:
