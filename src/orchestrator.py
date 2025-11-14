@@ -62,7 +62,18 @@ class PlutoOrchestrator:
         signal.signal(signal.SIGTERM, self._signal_handler)
         
         print("\n" + "="*70)
-        print("🪐 PROJECT PLUTO - Reflex Agent Voice Assistant")        print("\n❌ Some workers failed to initialize\n")
+        print("🪐 PROJECT PLUTO - Voice Assistant")
+        print("="*70 + "\n")
+
+        # Start all workers
+        all_ok = True
+        for worker in self.workers:
+            if not worker.start():
+                print(f"✗ {worker.__class__.__name__} failed to start")
+                all_ok = False
+
+        if not all_ok:
+            print("\n✗ Some workers failed to initialize\n")
             return False
         
         self._setup_queue_monitoring()
@@ -335,3 +346,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
