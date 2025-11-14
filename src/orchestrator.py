@@ -140,68 +140,7 @@ class PlutoOrchestrator:
                 llm_depth = self.llm_to_tts_queue.qsize()
                 
                 if stt_depth > 0 or llm_depth > 0:
-                    self.metrics.log_metric('system', 'queue_depth', stt_depth + llm_depth, 'items')    
-    def _handle_vision_event(self, event: dict):
-        """
-        Handle vision events and update agent state
-        
-        Args:
-            event: Vision event dict with state and face info
-        """
-        vision_state = event.get('state', 'idle')
-        
-        # State: IDLE - waiting for a face
-        if self.agent_state.current_state == AgentState.IDLE:
-            if vision_state in ['face_locked', 'locked_tracking']:
-                # New face detected and locked!
-                locked_face = event.get('locked_face')
-                if locked_face:
-                    print(f"\n👤 New person detected!")
-                    
-                    # Transition to FACE_DETECTED
-                    self.agent_state.transition(
-                        AgentState.FACE_DETECTED,
-                        f"Face locked at {locked_face['center']}"
-                    )
-                    self.reporter.log_conversation_event('face_detected', f"Face locked at {locked_face['center']}")
-                    
-                    # Then immediately to LOCKED_IN (ready to greet)
-                    self.agent_state.lock_face(locked_face['id'])
-                    self.agent_state.transition(
-                        AgentState.LOCKED_IN,
-                        "Ready to initiate conversation"
-                    )
-                    self.reporter.log_conversation_event('face_locked', 'Ready to initiate conversation')
-                    
-                    # Trigger greeting
-                    self._send_greeting()
-        
-        # State: LOCKED_IN or later - person is engaged
-        elif self.agent_state.is_locked():
-            if vision_state == 'face_lost':
-                # Person left!
-                print(f"\n👋 Person left the conversation")
-                
-                # Transition to FACE_LOST
-                self.agent_state.transition(
-                    AgentState.FACE_LOST,
-                    "Face no longer detected"
-                )
-                self.reporter.log_conversation_event('face_lost', 'Person left')
-                
-                # Stop listening
-                self.stt_worker.pause()
-                
-                # Reset after timeout
-                time.sleep(2.0)
-                self.agent_state.reset()
-                self.reporter.log_conversation_event('agent_reset', 'Ready for next person')
-                print("🔄 Ready for next person\n")
-            
-            elif vision_state in ['face_locked', 'locked_tracking']:
-                # Person still here, continue normal operation
-                pass
-    
+                    self.metrics.log_metric('system', 'queue_depth', stt_depth + llm_depth, 'items')
     def _send_greeting(self):
         """
         Send greeting message to LLM to initiate conversation
@@ -228,7 +167,7 @@ class PlutoOrchestrator:
             'text': VISION_CONFIG['greeting_message'],
             'timestamp': current_time,
             'latency_ms': 0,
-            'source': 'vision_trigger'  # Mark as vision-initiated
+            'source': 'user'
         }
         
         try:
