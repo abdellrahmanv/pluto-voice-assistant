@@ -45,8 +45,7 @@ def generate_cache():
     print("\nPluto Voice Assistant - TTS Cache Generation")
     print("Repository: github.com/abdellrahmanv/pluto-voice-assistant")
     print("=" * 60)
-    print(f"Piper model: {PIPER_CONFIG['model_path']}")
-    print(f"Cache location: {CACHE_DIR.absolute()}")
+    print(f"Cache location: cache/tts/")
     print("=" * 60)
     
     for name, text in COMMON_PHRASES.items():
@@ -83,7 +82,7 @@ def generate_cache():
     
     print("\n" + "=" * 60)
     print("Cache generation complete!")
-    print(f"Cache location: {CACHE_DIR.absolute()}")
+    print(f"Cache location: cache/tts/")
     
     # List generated files
     cache_files = sorted(CACHE_DIR.glob("*.wav"))
