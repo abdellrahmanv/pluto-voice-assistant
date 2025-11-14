@@ -68,21 +68,27 @@ def generate_cache():
         print(f"  Text: {text}")
         
         try:
+            # Use shell execution for better compatibility
+            shell_cmd = f'echo "{text}" | {str(piper_bin.absolute())} --model {PIPER_CONFIG["model_path"]} --output_file {str(output_file)}'
+            
             result = subprocess.run(
-                cmd, 
-                input=text, 
-                text=True, 
-                capture_output=True, 
+                shell_cmd,
+                shell=True,
+                capture_output=True,
+                text=True,
                 timeout=10,
                 cwd=str(piper_bin.parent)
             )
             
-            if result.returncode == 0:
-                file_size = output_file.stat().st_size if output_file.exists() else 0
+            if result.returncode == 0 and output_file.exists():
+                file_size = output_file.stat().st_size
                 print(f"  Status: OK ({file_size} bytes)")
             else:
                 print(f"  Status: FAILED")
-                print(f"  Error: {result.stderr}")
+                if result.stderr:
+                    print(f"  Error: {result.stderr}")
+                if result.stdout:
+                    print(f"  Output: {result.stdout}")
         except subprocess.TimeoutExpired:
             print(f"  Status: TIMEOUT")
         except Exception as e:
