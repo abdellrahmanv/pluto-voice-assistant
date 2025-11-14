@@ -622,7 +622,7 @@ def main():
             print(f"  - {step}")
     
     print(f"\\n{Colors.OKGREEN}{Colors.BOLD} Phase 2 optimization complete!{Colors.ENDC}")
-    print(f"{Colors.INFO}Run 'python test_performance.py' to verify{Colors.ENDC}\\n")
+    print(f"{Colors.OKCYAN}Run 'python test_performance.py' to verify{Colors.ENDC}\n")
 
 if __name__ == "__main__":
     try:
