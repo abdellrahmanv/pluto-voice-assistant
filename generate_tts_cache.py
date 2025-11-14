@@ -51,8 +51,15 @@ def generate_cache():
     for name, text in COMMON_PHRASES.items():
         output_file = CACHE_DIR / f"{name}.wav"
         
+        piper_bin = Path(PIPER_CONFIG["piper_binary"])
+        
+        # Ensure piper binary is executable
+        if not piper_bin.exists():
+            print(f"\nError: Piper binary not found at {piper_bin}")
+            continue
+        
         cmd = [
-            PIPER_CONFIG["piper_binary"],
+            str(piper_bin.absolute()),
             "--model", PIPER_CONFIG["model_path"],
             "--output_file", str(output_file)
         ]
@@ -66,7 +73,8 @@ def generate_cache():
                 input=text, 
                 text=True, 
                 capture_output=True, 
-                timeout=10
+                timeout=10,
+                cwd=str(piper_bin.parent)
             )
             
             if result.returncode == 0:
