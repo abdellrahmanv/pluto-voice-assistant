@@ -20,7 +20,7 @@ class Colors:
 
 def check_item(name, passed, details=""):
     """Print check result"""
-    icon = f"{Colors.GREEN}✅" if passed else f"{Colors.RED}❌"
+    icon = f"{Colors.GREEN}" if passed else f"{Colors.RED}"
     print(f"{icon} {name}{Colors.ENDC}")
     if details:
         print(f"   {Colors.BLUE}{details}{Colors.ENDC}")
@@ -161,7 +161,7 @@ def check_dependencies():
 
 def main():
     print(f"\n{Colors.BOLD}{'='*70}{Colors.ENDC}")
-    print(f"{Colors.BOLD}🔍 Pluto Pre-Flight Check{Colors.ENDC}")
+    print(f"{Colors.BOLD} Pluto Pre-Flight Check{Colors.ENDC}")
     print(f"{Colors.BOLD}   Verify system ready for optimization{Colors.ENDC}")
     print(f"{Colors.BOLD}{'='*70}{Colors.ENDC}\n")
     
@@ -197,18 +197,18 @@ def main():
     print(f"\n{Colors.BOLD}{'='*70}{Colors.ENDC}")
     
     if all_passed:
-        print(f"{Colors.GREEN}{Colors.BOLD}✅ All checks passed! Ready to optimize.{Colors.ENDC}")
+        print(f"{Colors.GREEN}{Colors.BOLD} All checks passed! Ready to optimize.{Colors.ENDC}")
         print(f"\n{Colors.BOLD}Next steps:{Colors.ENDC}")
         print(f"  1. python3 optimize_phase1.py")
         print(f"  2. python3 optimize_phase2.py")
         print(f"  3. python3 test_performance.py\n")
         return 0
     else:
-        print(f"{Colors.RED}{Colors.BOLD}❌ Some checks failed!{Colors.ENDC}")
+        print(f"{Colors.RED}{Colors.BOLD} Some checks failed!{Colors.ENDC}")
         print(f"\n{Colors.BOLD}Action required:{Colors.ENDC}")
-        print(f"  • Install Ollama: curl -fsSL https://ollama.ai/install.sh | sh")
-        print(f"  • Start Ollama: ollama serve")
-        print(f"  • Install Python deps: pip3 install -r requirements.txt")
+        print(f"   Install Ollama: curl -fsSL https://ollama.ai/install.sh | sh")
+        print(f"   Start Ollama: ollama serve")
+        print(f"   Install Python deps: pip3 install -r requirements.txt")
         print(f"\nThen run this check again.\n")
         return 1
 
@@ -218,3 +218,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"\n\n{Colors.YELLOW}Cancelled{Colors.ENDC}\n")
         sys.exit(1)
+

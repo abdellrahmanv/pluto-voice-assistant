@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ðŸš€ Pluto Optimization - Phase 1: Quick Wins
+ Pluto Optimization - Phase 1: Quick Wins
 RPi 4B Performance Optimization Script
 
 This script automates:
@@ -10,7 +10,7 @@ This script automates:
 4. Add TTS caching for common phrases
 5. Update configuration for optimal RPi 4B performance
 
-Expected improvement: 2340ms → ~1600ms (32% faster)
+Expected improvement: 2340ms  ~1600ms (32% faster)
 """
 
 import os
@@ -39,16 +39,16 @@ def print_header(text):
     print(f"{Colors.HEADER}{Colors.BOLD}{'='*70}{Colors.ENDC}\n")
 
 def print_success(text):
-    print(f"{Colors.OKGREEN}âœ… {text}{Colors.ENDC}")
+    print(f"{Colors.OKGREEN} {text}{Colors.ENDC}")
 
 def print_info(text):
-    print(f"{Colors.OKCYAN}â„¹ï¸  {text}{Colors.ENDC}")
+    print(f"{Colors.OKCYAN}  {text}{Colors.ENDC}")
 
 def print_warning(text):
-    print(f"{Colors.WARNING}âš ï¸  {text}{Colors.ENDC}")
+    print(f"{Colors.WARNING}   {text}{Colors.ENDC}")
 
 def print_error(text):
-    print(f"{Colors.FAIL}âŒ {text}{Colors.ENDC}")
+    print(f"{Colors.FAIL} {text}{Colors.ENDC}")
 
 def run_command(cmd, check=True, shell=False):
     """Run shell command with error handling"""
@@ -65,7 +65,7 @@ def run_command(cmd, check=True, shell=False):
 
 def check_system():
     """Check if running on Raspberry Pi"""
-    print_header("ðŸ"Š System Check")
+    print_header("Pluto Optimization")
     
     # Check if on Linux (Raspberry Pi)
     if sys.platform != "linux":
@@ -89,7 +89,7 @@ def check_system():
 
 def backup_files():
     """Backup existing configuration files"""
-    print_header("ðŸ'¾ Creating Backups")
+    print_header("Pluto Optimization")
     
     backup_dir = Path("backups") / f"backup_{int(time.time())}"
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -115,7 +115,7 @@ def backup_files():
 
 def update_requirements():
     """Update requirements.txt for faster-whisper"""
-    print_header("ðŸ"¦ Step 1: Update Requirements")
+    print_header("Pluto Optimization")
     
     requirements_path = Path("requirements.txt")
     
@@ -137,13 +137,13 @@ def update_requirements():
         f.write(new_content)
     
     print_success("Updated requirements.txt")
-    print_info("Changed: openai-whisper → faster-whisper")
+    print_info("Changed: openai-whisper  faster-whisper")
     print_info("Added: onnxruntime (CPU optimization)")
     return True
 
 def install_dependencies():
     """Install updated dependencies"""
-    print_header("ðŸ"¥ Step 2: Install Dependencies")
+    print_header("Pluto Optimization")
     
     print_info("Uninstalling old openai-whisper...")
     success, stdout, stderr = run_command([sys.executable, "-m", "pip", "uninstall", "-y", "openai-whisper"], check=False)
@@ -165,7 +165,7 @@ def install_dependencies():
 
 def update_ollama_model():
     """Update Ollama to use q2_K quantization"""
-    print_header("ðŸ§  Step 3: Optimize Ollama Model")
+    print_header("Pluto Optimization")
     
     print_info("Checking current Ollama models...")
     success, stdout, stderr = run_command(["ollama", "list"], check=False)
@@ -192,7 +192,7 @@ def update_ollama_model():
 
 def enable_cpu_governor():
     """Enable performance CPU governor on Raspberry Pi"""
-    print_header("âš¡ Step 4: CPU Performance Mode")
+    print_header("Pluto Optimization")
     
     if sys.platform != "linux":
         print_warning("Skipped (not on Linux)")
@@ -222,7 +222,7 @@ def enable_cpu_governor():
 
 def update_config_file():
     """Update config.py with optimized settings"""
-    print_header("âš™ï¸  Step 5: Update Configuration")
+    print_header("Pluto Optimization")
     
     config_path = Path("src/config.py")
     
@@ -241,12 +241,12 @@ def update_config_file():
             'qwen2.5:0.5b-instruct-q4_k_M',
             'qwen2.5:0.5b-instruct-q2_k'
         )
-        changes.append("Ollama model → q2_k (faster)")
+        changes.append("Ollama model  q2_k (faster)")
     
     # Reduce max_tokens
     if '"max_tokens": 150' in content:
         content = content.replace('"max_tokens": 150', '"max_tokens": 60')
-        changes.append("Max tokens: 150 → 60 (faster responses)")
+        changes.append("Max tokens: 150  60 (faster responses)")
     
     # Update Whisper to use faster-whisper settings
     if 'WHISPER_CONFIG' in content:
@@ -256,7 +256,7 @@ def update_config_file():
     # Add Piper speed optimization
     if '"length_scale": 1.0' in content:
         content = content.replace('"length_scale": 1.0', '"length_scale": 0.8')
-        changes.append("Piper length_scale: 1.0 → 0.8 (20% faster)")
+        changes.append("Piper length_scale: 1.0  0.8 (20% faster)")
     
     with open(config_path, "w") as f:
         f.write(content)
@@ -268,7 +268,7 @@ def update_config_file():
 
 def create_tts_cache():
     """Create TTS cache directory and script"""
-    print_header("ðŸ"Š Step 6: TTS Caching Setup")
+    print_header("Pluto Optimization")
     
     cache_dir = Path("cache/tts")
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -296,7 +296,7 @@ COMMON_PHRASES = {
 def generate_cache():
     from config import PIPER_CONFIG
     
-    print("ðŸ"Š Generating TTS cache...")
+    print("" Generating TTS cache...")
     
     for name, text in COMMON_PHRASES.items():
         output_file = CACHE_DIR / f"{name}.wav"
@@ -311,13 +311,13 @@ def generate_cache():
             result = subprocess.run(cmd, input=text, text=True, capture_output=True, timeout=10)
             
             if result.returncode == 0:
-                print(f"  âœ… {name}: {output_file.name}")
+                print(f"   {name}: {output_file.name}")
             else:
-                print(f"  âŒ {name}: Failed")
+                print(f"   {name}: Failed")
         except Exception as e:
-            print(f"  âŒ {name}: {e}")
+            print(f"   {name}: {e}")
     
-    print("âœ… TTS cache generated")
+    print(" TTS cache generated")
 
 if __name__ == "__main__":
     generate_cache()
@@ -337,21 +337,21 @@ if __name__ == "__main__":
 
 def print_summary():
     """Print optimization summary"""
-    print_header("ðŸŽ‰ Phase 1 Complete!")
+    print_header("Pluto Optimization")
     
     print(f"{Colors.BOLD}Optimizations Applied:{Colors.ENDC}")
-    print(f"  1. âœ… faster-whisper installed (4x faster than OpenAI Whisper)")
-    print(f"  2. âœ… Ollama model updated to q2_k (40% faster)")
-    print(f"  3. âœ… CPU governor set to performance mode")
-    print(f"  4. âœ… Max tokens reduced: 150 → 60")
-    print(f"  5. âœ… Piper speed increased: 20% faster")
-    print(f"  6. âœ… TTS caching prepared")
+    print(f"  1.  faster-whisper installed (4x faster than OpenAI Whisper)")
+    print(f"  2.  Ollama model updated to q2_k (40% faster)")
+    print(f"  3.  CPU governor set to performance mode")
+    print(f"  4.  Max tokens reduced: 150  60")
+    print(f"  5.  Piper speed increased: 20% faster")
+    print(f"  6.  TTS caching prepared")
     
     print(f"\n{Colors.BOLD}Expected Performance:{Colors.ENDC}")
-    print(f"  ðŸŽ¤ STT: 245ms → ~60ms  ({Colors.OKGREEN}-185ms{Colors.ENDC})")
-    print(f"  ðŸ§  LLM: 1890ms → ~1300ms ({Colors.OKGREEN}-590ms{Colors.ENDC})")
-    print(f"  ðŸ"Š TTS: 205ms → ~150ms  ({Colors.OKGREEN}-55ms{Colors.ENDC})")
-    print(f"  {Colors.BOLD}â±ï¸  TOTAL: 2340ms → ~1510ms ({Colors.OKGREEN}-830ms / 35% faster{Colors.ENDC}){Colors.ENDC}")
+    print(f"  STT: 245ms -> 60ms  ({Colors.OKGREEN}-185ms{Colors.ENDC})")
+    print(f"  LLM: 1890ms -> 1300ms ({Colors.OKGREEN}-590ms{Colors.ENDC})")
+    print(f"  TTS: 205ms -> 150ms  ({Colors.OKGREEN}-55ms{Colors.ENDC})")
+    print(f"  {Colors.BOLD}TOTAL: 2340ms -> 1510ms ({Colors.OKGREEN}-830ms / 35% faster{Colors.ENDC}){Colors.ENDC}")
     
     print(f"\n{Colors.BOLD}Next Steps:{Colors.ENDC}")
     print(f"  1. Run: python generate_tts_cache.py")
@@ -360,14 +360,14 @@ def print_summary():
     print(f"  4. Check logs/ directory for performance reports")
     
     print(f"\n{Colors.BOLD}Manual Steps (if needed):{Colors.ENDC}")
-    print(f"  • Update STT worker to use faster-whisper (Phase 2)")
-    print(f"  • Add TTS caching to TTS worker (Phase 2)")
-    print(f"  • Test Ollama: ollama run qwen2.5:0.5b-instruct-q2_k")
+    print(f"   Update STT worker to use faster-whisper (Phase 2)")
+    print(f"   Add TTS caching to TTS worker (Phase 2)")
+    print(f"   Test Ollama: ollama run qwen2.5:0.5b-instruct-q2_k")
 
 def main():
-    print_header("ðŸš€ Pluto Phase 1 Optimization - Quick Wins")
+    print_header("Pluto Optimization")
     print_info("Target: Raspberry Pi 4B")
-    print_info("Goal: 2340ms → ~1600ms response time")
+    print_info("Goal: 2340ms  ~1600ms response time")
     
     input(f"\n{Colors.WARNING}Press Enter to start optimization (or Ctrl+C to cancel)...{Colors.ENDC}")
     
@@ -403,7 +403,7 @@ def main():
     print_summary()
     
     if failed_steps:
-        print(f"\n{Colors.WARNING}âš ï¸  Some steps had issues:{Colors.ENDC}")
+        print(f"\n{Colors.WARNING}   Some steps had issues:{Colors.ENDC}")
         for step in failed_steps:
             print(f"  - {step}")
         print(f"\n{Colors.INFO}System may still work, but some optimizations might be missing{Colors.ENDC}")
@@ -415,8 +415,9 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n\n{Colors.WARNING}âŒ Optimization cancelled by user{Colors.ENDC}")
+        print(f"\n\n{Colors.WARNING} Optimization cancelled by user{Colors.ENDC}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\n{Colors.FAIL}âŒ Fatal error: {e}{Colors.ENDC}")
+        print(f"\n\n{Colors.FAIL} Fatal error: {e}{Colors.ENDC}")
         sys.exit(1)
+

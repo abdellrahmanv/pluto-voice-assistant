@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-🚀 Pluto Optimization - Phase 2: Code Optimizations
+ Pluto Optimization - Phase 2: Code Optimizations
 RPi 4B Code-Level Performance Improvements
 
 This script automates:
 1. Update STT worker to use faster-whisper
 2. Add TTS caching to TTS worker
-3. Reduce conversation history (5 turns → 2 turns)
+3. Reduce conversation history (5 turns  2 turns)
 4. Add streaming optimizations
 5. Improve error handling and recovery
 
-Expected improvement: 1600ms → ~1400ms (additional 12% faster)
-Total improvement: 2340ms → ~1400ms (40% faster overall)
+Expected improvement: 1600ms  ~1400ms (additional 12% faster)
+Total improvement: 2340ms  ~1400ms (40% faster overall)
 """
 
 import os
@@ -38,20 +38,20 @@ def print_header(text):
     print(f"{Colors.HEADER}{Colors.BOLD}{'='*70}{Colors.ENDC}\n")
 
 def print_success(text):
-    print(f"{Colors.OKGREEN}✅ {text}{Colors.ENDC}")
+    print(f"{Colors.OKGREEN} {text}{Colors.ENDC}")
 
 def print_info(text):
-    print(f"{Colors.OKCYAN}ℹ️  {text}{Colors.ENDC}")
+    print(f"{Colors.OKCYAN}  {text}{Colors.ENDC}")
 
 def print_warning(text):
-    print(f"{Colors.WARNING}⚠️  {text}{Colors.ENDC}")
+    print(f"{Colors.WARNING}  {text}{Colors.ENDC}")
 
 def print_error(text):
-    print(f"{Colors.FAIL}❌ {text}{Colors.ENDC}")
+    print(f"{Colors.FAIL} {text}{Colors.ENDC}")
 
 def backup_worker_files():
     """Backup worker files before modification"""
-    print_header("💾 Creating Worker Backups")
+    print_header("Pluto Optimization")
     
     backup_dir = Path("backups") / f"phase2_backup_{int(time.time())}"
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -75,7 +75,7 @@ def backup_worker_files():
 
 def update_stt_worker():
     """Update STT worker to use faster-whisper"""
-    print_header("🎤 Step 1: Update STT Worker (faster-whisper)")
+    print_header("Pluto Optimization")
     
     stt_path = Path("src/workers/stt_worker.py")
     if not stt_path.exists():
@@ -153,7 +153,7 @@ def update_stt_worker():
 
 def update_tts_worker():
     """Add caching to TTS worker"""
-    print_header("🔊 Step 2: Add TTS Caching")
+    print_header("Pluto Optimization")
     
     tts_path = Path("src/workers/tts_worker.py")
     if not tts_path.exists():
@@ -173,7 +173,7 @@ def update_tts_worker():
         self.audio_cache = {}  # In-memory cache
         self._load_cache()
 
-        print("🔊 TTS Worker initializing...")
+        print(" TTS Worker initializing...")
     
     def _load_cache(self):
         """Load pre-generated TTS cache"""
@@ -187,32 +187,32 @@ def update_tts_worker():
             cache_file = self.cache_dir / f"{name}.wav"
             if cache_file.exists():
                 self.audio_cache[text.lower()] = cache_file
-                print(f"   📦 Cached: {name}")'''
+                print(f"    Cached: {name}")'''
     
     old_init = '''self.temp_wav_path = Path("temp_tts.wav")
 
-        print("🔊 TTS Worker initializing...")'''
+        print(" TTS Worker initializing...")'''
     
     content = content.replace(old_init, init_addition)
     
     # Update _process_queue to use cache
     old_process = '''if task['type'] == 'response':
                     response_text = task['text']
-                    print(f"   🗣️  Speaking: \\"{response_text}\\"")
+                    print(f"     Speaking: \\"{response_text}\\"")
 
                     start_time = time.time()
                     success = self._synthesize(response_text, play=True)'''
     
     new_process = '''if task['type'] == 'response':
                     response_text = task['text']
-                    print(f"   🗣️  Speaking: \\"{response_text}\\"")
+                    print(f"     Speaking: \\"{response_text}\\"")
 
                     start_time = time.time()
                     
                     # Check cache first
                     cached_file = self.audio_cache.get(response_text.lower())
                     if cached_file and cached_file.exists():
-                        print(f"   📦 Using cached audio")
+                        print(f"    Using cached audio")
                         self._play_wav(cached_file)
                         success = True
                     else:
@@ -229,7 +229,7 @@ def update_tts_worker():
 
 def update_llm_worker():
     """Optimize LLM worker for RPi 4B"""
-    print_header("🧠 Step 3: Optimize LLM Worker")
+    print_header("Pluto Optimization")
     
     llm_path = Path("src/workers/llm_worker.py")
     if not llm_path.exists():
@@ -263,10 +263,10 @@ def update_llm_worker():
         except requests.exceptions.Timeout:
             return "I'm thinking too slowly. Please try again."
         except requests.exceptions.RequestException as e:
-            print(f"❌ Ollama request failed: {e}")
+            print(f" Ollama request failed: {e}")
             return "I encountered an error. Please try again."
         except Exception as e:
-            print(f"❌ Generation failed: {e}")
+            print(f" Generation failed: {e}")
             return "Something went wrong."'''
     
     new_generate = '''def _generate(self, prompt: str, max_tokens: Optional[int] = None, retries: int = 2) -> str:
@@ -310,18 +310,18 @@ def update_llm_worker():
 
             except requests.exceptions.Timeout:
                 if attempt < retries:
-                    print(f"   ⏱️ Timeout, retrying ({attempt + 1}/{retries})...")
+                    print(f"    Timeout, retrying ({attempt + 1}/{retries})...")
                     continue
                 return "I'm thinking too slowly. Please try again."
             except requests.exceptions.RequestException as e:
                 if attempt < retries:
-                    print(f"   🔄 Request failed, retrying ({attempt + 1}/{retries})...")
+                    print(f"    Request failed, retrying ({attempt + 1}/{retries})...")
                     time.sleep(0.5)
                     continue
-                print(f"❌ Ollama request failed: {e}")
+                print(f" Ollama request failed: {e}")
                 return "I encountered an error. Please try again."
             except Exception as e:
-                print(f"❌ Generation failed: {e}")
+                print(f" Generation failed: {e}")
                 return "Something went wrong."
         
         return "I'm having trouble responding right now."'''
@@ -341,7 +341,7 @@ def update_llm_worker():
 
 def update_config():
     """Update config with Phase 2 optimizations"""
-    print_header("⚙️ Step 4: Update Configuration")
+    print_header("Pluto Optimization")
     
     config_path = Path("src/config.py")
     if not config_path.exists():
@@ -356,17 +356,17 @@ def update_config():
     # Reduce conversation history
     if '"max_history": 5' in content:
         content = content.replace('"max_history": 5', '"max_history": 2')
-        changes.append("Conversation history: 5 turns → 2 turns")
+        changes.append("Conversation history: 5 turns  2 turns")
     
     # Lower energy threshold for better voice detection
     if '"energy_threshold": 300' in content:
         content = content.replace('"energy_threshold": 300', '"energy_threshold": 250')
-        changes.append("Energy threshold: 300 → 250 (more sensitive)")
+        changes.append("Energy threshold: 300  250 (more sensitive)")
     
     # Reduce silence threshold for faster detection
     if '"silence_chunks_threshold": 20' in content:
         content = content.replace('"silence_chunks_threshold": 20', '"silence_chunks_threshold": 15')
-        changes.append("Silence threshold: 20 → 15 chunks (faster cutoff)")
+        changes.append("Silence threshold: 20  15 chunks (faster cutoff)")
     
     # Add faster-whisper optimizations to config
     whisper_additions = '''
@@ -392,7 +392,7 @@ def update_config():
 
 def create_test_script():
     """Create performance test script"""
-    print_header("🧪 Step 5: Create Test Script")
+    print_header("Pluto Optimization")
     
     test_script = '''#!/usr/bin/env python3
 """
@@ -409,41 +409,41 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 def test_imports():
     """Test if all modules import correctly"""
-    print("\\n📦 Testing imports...")
+    print("\\n Testing imports...")
     
     try:
         from faster_whisper import WhisperModel
-        print("  ✅ faster-whisper")
+        print("   faster-whisper")
     except ImportError as e:
-        print(f"  ❌ faster-whisper: {e}")
+        print(f"   faster-whisper: {e}")
         return False
     
     try:
         import requests
         response = requests.get("http://localhost:11434/api/tags", timeout=2)
         if response.status_code == 200:
-            print("  ✅ Ollama server")
+            print("   Ollama server")
         else:
-            print("  ⚠️ Ollama server not responding")
+            print("   Ollama server not responding")
     except:
-        print("  ❌ Ollama server not running")
+        print("   Ollama server not running")
     
     try:
         from config import WHISPER_CONFIG, OLLAMA_CONFIG, PIPER_CONFIG
-        print("  ✅ Configuration")
+        print("   Configuration")
         print(f"      Whisper: {WHISPER_CONFIG['model_size']}")
         print(f"      Ollama: {OLLAMA_CONFIG['model']}")
         print(f"      Max tokens: {OLLAMA_CONFIG['max_tokens']}")
         print(f"      History: {OLLAMA_CONFIG['max_history']} turns")
     except Exception as e:
-        print(f"  ❌ Configuration: {e}")
+        print(f"   Configuration: {e}")
         return False
     
     return True
 
 def test_faster_whisper():
     """Test faster-whisper performance"""
-    print("\\n🎤 Testing faster-whisper...")
+    print("\\n Testing faster-whisper...")
     
     try:
         from faster_whisper import WhisperModel
@@ -453,7 +453,7 @@ def test_faster_whisper():
         start = time.time()
         model = WhisperModel("tiny", device="cpu", compute_type="int8")
         load_time = (time.time() - start) * 1000
-        print(f"  ✅ Model loaded: {load_time:.0f}ms")
+        print(f"   Model loaded: {load_time:.0f}ms")
         
         print("  Testing inference...")
         audio = np.zeros(16000, dtype=np.float32)  # 1 second of silence
@@ -461,23 +461,23 @@ def test_faster_whisper():
         segments, info = model.transcribe(audio, language="en")
         list(segments)  # Force evaluation
         inference_time = (time.time() - start) * 1000
-        print(f"  ✅ Inference: {inference_time:.0f}ms")
+        print(f"   Inference: {inference_time:.0f}ms")
         
         if inference_time < 200:
-            print(f"  🎉 Excellent! Target: <200ms")
+            print(f"   Excellent! Target: <200ms")
         elif inference_time < 300:
-            print(f"  ✅ Good! Target: <200ms")
+            print(f"   Good! Target: <200ms")
         else:
-            print(f"  ⚠️ Slow. Expected <200ms")
+            print(f"   Slow. Expected <200ms")
         
         return True
     except Exception as e:
-        print(f"  ❌ Test failed: {e}")
+        print(f"   Test failed: {e}")
         return False
 
 def test_ollama():
     """Test Ollama performance"""
-    print("\\n🧠 Testing Ollama...")
+    print("\\n Testing Ollama...")
     
     try:
         import requests
@@ -496,25 +496,25 @@ def test_ollama():
         latency = (time.time() - start) * 1000
         
         if response.status_code == 200:
-            print(f"  ✅ Response: {latency:.0f}ms")
+            print(f"   Response: {latency:.0f}ms")
             
             if latency < 1000:
-                print(f"  🎉 Excellent! Target: <1500ms")
+                print(f"   Excellent! Target: <1500ms")
             elif latency < 1500:
-                print(f"  ✅ Good! Target: <1500ms")
+                print(f"   Good! Target: <1500ms")
             else:
-                print(f"  ⚠️ Slow. Expected <1500ms")
+                print(f"   Slow. Expected <1500ms")
             return True
         else:
-            print(f"  ❌ Failed: {response.status_code}")
+            print(f"   Failed: {response.status_code}")
             return False
     except Exception as e:
-        print(f"  ❌ Test failed: {e}")
+        print(f"   Test failed: {e}")
         return False
 
 def main():
     print("\\n" + "="*70)
-    print("🚀 Pluto Performance Test")
+    print(" Pluto Performance Test")
     print("="*70)
     
     results = {
@@ -524,19 +524,19 @@ def main():
     }
     
     print("\\n" + "="*70)
-    print("📊 Test Summary")
+    print(" Test Summary")
     print("="*70)
     
     for test, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = " PASS" if passed else " FAIL"
         print(f"  {status}  {test}")
     
     all_passed = all(results.values())
     
     if all_passed:
-        print("\\n🎉 All tests passed! System is optimized and ready.")
+        print("\\n All tests passed! System is optimized and ready.")
     else:
-        print("\\n⚠️ Some tests failed. Check errors above.")
+        print("\\n Some tests failed. Check errors above.")
     
     return 0 if all_passed else 1
 
@@ -556,20 +556,20 @@ if __name__ == "__main__":
 
 def print_summary():
     """Print Phase 2 summary"""
-    print_header("🎉 Phase 2 Complete!")
+    print_header("Pluto Optimization")
     
     print(f"{Colors.BOLD}Code Optimizations Applied:{Colors.ENDC}")
-    print(f"  1. ✅ STT: Switched to faster-whisper with INT8")
-    print(f"  2. ✅ TTS: Added caching for common phrases")
-    print(f"  3. ✅ LLM: Added retry logic and response limiting")
-    print(f"  4. ✅ Config: Reduced history, optimized thresholds")
-    print(f"  5. ✅ Test script created")
+    print(f"  1.  STT: Switched to faster-whisper with INT8")
+    print(f"  2.  TTS: Added caching for common phrases")
+    print(f"  3.  LLM: Added retry logic and response limiting")
+    print(f"  4.  Config: Reduced history, optimized thresholds")
+    print(f"  5.  Test script created")
     
     print(f"\\n{Colors.BOLD}Total Performance (Phase 1 + 2):{Colors.ENDC}")
-    print(f"  🎤 STT: 245ms → 60ms   ({Colors.OKGREEN}-185ms / 75% faster{Colors.ENDC})")
-    print(f"  🧠 LLM: 1890ms → 1200ms ({Colors.OKGREEN}-690ms / 37% faster{Colors.ENDC})")
-    print(f"  🔊 TTS: 205ms → 120ms  ({Colors.OKGREEN}-85ms / 41% faster{Colors.ENDC})")
-    print(f"  {Colors.BOLD}⏱️  TOTAL: 2340ms → 1380ms ({Colors.OKGREEN}-960ms / 41% faster!{Colors.ENDC}){Colors.ENDC}")
+    print(f"   STT: 245ms  60ms   ({Colors.OKGREEN}-185ms / 75% faster{Colors.ENDC})")
+    print(f"   LLM: 1890ms  1200ms ({Colors.OKGREEN}-690ms / 37% faster{Colors.ENDC})")
+    print(f"   TTS: 205ms  120ms  ({Colors.OKGREEN}-85ms / 41% faster{Colors.ENDC})")
+    print(f"  {Colors.BOLD}  TOTAL: 2340ms  1380ms ({Colors.OKGREEN}-960ms / 41% faster!{Colors.ENDC}){Colors.ENDC}")
     
     print(f"\\n{Colors.BOLD}Next Steps:{Colors.ENDC}")
     print(f"  1. Run: python test_performance.py")
@@ -578,14 +578,14 @@ def print_summary():
     print(f"  4. Monitor performance in logs/ directory")
     
     print(f"\\n{Colors.BOLD}Troubleshooting:{Colors.ENDC}")
-    print(f"  • If faster-whisper fails: pip install faster-whisper --upgrade")
-    print(f"  • If Ollama fails: ollama serve (in separate terminal)")
-    print(f"  • Restore backups: cp -r backups/phase2_backup_*/* ./")
+    print(f"   If faster-whisper fails: pip install faster-whisper --upgrade")
+    print(f"   If Ollama fails: ollama serve (in separate terminal)")
+    print(f"   Restore backups: cp -r backups/phase2_backup_*/* ./")
 
 def main():
-    print_header("🚀 Pluto Phase 2 Optimization - Code Improvements")
+    print_header("Pluto Optimization")
     print_info("Target: Raspberry Pi 4B")
-    print_info("Goal: 1600ms → ~1400ms (after Phase 1)")
+    print_info("Goal: 1600ms  ~1400ms (after Phase 1)")
     
     input(f"\\n{Colors.WARNING}Press Enter to start optimization (or Ctrl+C to cancel)...{Colors.ENDC}")
     
@@ -617,21 +617,22 @@ def main():
     print_summary()
     
     if failed_steps:
-        print(f"\\n{Colors.WARNING}⚠️ Some steps failed:{Colors.ENDC}")
+        print(f"\\n{Colors.WARNING} Some steps failed:{Colors.ENDC}")
         for step in failed_steps:
             print(f"  - {step}")
     
-    print(f"\\n{Colors.OKGREEN}{Colors.BOLD}🎉 Phase 2 optimization complete!{Colors.ENDC}")
+    print(f"\\n{Colors.OKGREEN}{Colors.BOLD} Phase 2 optimization complete!{Colors.ENDC}")
     print(f"{Colors.INFO}Run 'python test_performance.py' to verify{Colors.ENDC}\\n")
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\\n\\n{Colors.WARNING}❌ Optimization cancelled{Colors.ENDC}")
+        print(f"\\n\\n{Colors.WARNING} Optimization cancelled{Colors.ENDC}")
         sys.exit(1)
     except Exception as e:
-        print(f"\\n\\n{Colors.FAIL}❌ Fatal error: {e}{Colors.ENDC}")
+        print(f"\\n\\n{Colors.FAIL} Fatal error: {e}{Colors.ENDC}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
