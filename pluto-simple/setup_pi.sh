@@ -32,7 +32,14 @@ sudo apt-get install -y portaudio19-dev espeak flac
 echo ""
 echo "📦 Step 4/6: Installing Python packages..."
 pip3 install --upgrade pip
-pip3 install SpeechRecognition pyttsx3 pyaudio
+pip3 install --break-system-packages SpeechRecognition pyttsx3 pyaudio
+
+# Verify installations
+echo ""
+echo "🔍 Verifying package installations..."
+python3 -c "import speech_recognition; print('✅ SpeechRecognition installed')" || echo "❌ SpeechRecognition failed"
+python3 -c "import pyttsx3; print('✅ pyttsx3 installed')" || echo "❌ pyttsx3 failed"
+python3 -c "import pyaudio; print('✅ pyaudio installed')" || echo "❌ pyaudio failed"
 
 echo ""
 echo "📦 Step 5/6: Configuring audio devices..."

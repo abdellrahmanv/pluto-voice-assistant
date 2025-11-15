@@ -5,8 +5,22 @@ No LLM, just STT → Scenarios → TTS
 Simple voice assistant with predefined conversation scenarios
 """
 
-import speech_recognition as sr
-import pyttsx3
+try:
+    import speech_recognition as sr
+except ImportError:
+    print("❌ ERROR: SpeechRecognition not installed!")
+    print("   Install with: pip3 install SpeechRecognition")
+    print("   Or run: sudo ./setup_pi.sh")
+    exit(1)
+
+try:
+    import pyttsx3
+except ImportError:
+    print("❌ ERROR: pyttsx3 not installed!")
+    print("   Install with: pip3 install pyttsx3")
+    print("   Or run: sudo ./setup_pi.sh")
+    exit(1)
+
 import time
 
 class SimpleAgent:
