@@ -51,27 +51,30 @@ class SimpleAgent:
             import pyaudio
             p = pyaudio.PyAudio()
             
-            # Try each device
+            # List all devices first
+            device_found = False
             for i in range(p.get_device_count()):
                 try:
                     info = p.get_device_info_by_index(i)
                     if info['maxInputChannels'] > 0:
-                        # Try to use this device
-                        test_mic = sr.Microphone(device_index=i)
-                        print(f"✅ Using microphone: {info['name']}")
-                        self.microphone = test_mic
-                        p.terminate()
-                        return
-                except:
+                        print(f"   Found: [{i}] {info['name']}")
+                        if not device_found:
+                            # Use the first input device found
+                            self.microphone = sr.Microphone(device_index=i)
+                            print(f"✅ Using: [{i}] {info['name']}")
+                            device_found = True
+                except Exception as e:
                     continue
             
             p.terminate()
+            
+            if not device_found:
+                print("⚠️  No input devices found, using default")
+                self.microphone = sr.Microphone()
+                
         except Exception as e:
-            print(f"⚠️  Error: {e}")
-        
-        # Fallback to default
-        print("⚠️  Using default microphone")
-        self.microphone = sr.Microphone()
+            print(f"⚠️  PyAudio error: {e}, using default microphone")
+            self.microphone = sr.Microphone()
     
     def speak(self, text):
         """Speak using Piper"""
@@ -94,6 +97,10 @@ class SimpleAgent:
     
     def listen(self):
         """Listen for voice"""
+        if not self.microphone:
+            print("❌ No microphone available")
+            return None
+            
         try:
             with self.microphone as source:
                 print("\n🎤 Listening...")
@@ -107,8 +114,8 @@ class SimpleAgent:
                 except sr.UnknownValueError:
                     print("❌ Didn't catch that")
                     return None
-                except sr.RequestError:
-                    print("❌ No internet for speech recognition")
+                except sr.RequestError as e:
+                    print(f"❌ Speech recognition error: {e}")
                     return None
         except sr.WaitTimeoutError:
             return None
