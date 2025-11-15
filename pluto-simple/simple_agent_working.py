@@ -7,6 +7,28 @@ import speech_recognition as sr
 import subprocess
 import time
 import os
+import sys
+from datetime import datetime
+
+class Logger:
+    """Dual output to console and log file"""
+    def __init__(self, log_file):
+        self.terminal = sys.stdout
+        self.log = open(log_file, 'a', encoding='utf-8')
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.log.write(f"\n{'='*60}\n")
+        self.log.write(f"🪐 NEW RUN: {timestamp}\n")
+        self.log.write(f"{'='*60}\n")
+        self.log.flush()
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
 
 class SimpleAgent:
     def __init__(self):
@@ -182,12 +204,24 @@ class SimpleAgent:
                 time.sleep(1)
 
 if __name__ == "__main__":
+    # Setup logging
+    log_file = "pluto_run.log"
+    sys.stdout = Logger(log_file)
+    sys.stderr = sys.stdout
+    
+    print(f"📝 Logging to: {log_file}")
+    print("   You can share this file to debug errors!\n")
+    
     try:
         agent = SimpleAgent()
         agent.run()
     except Exception as e:
         print(f"\n❌ Fatal error: {e}")
+        import traceback
+        print("\n📋 Full error details:")
+        traceback.print_exc()
         print("\n💡 Try:")
         print("   1. Run: chmod +x test_audio.sh && ./test_audio.sh")
         print("   2. Check internet connection (needed for speech recognition)")
         print("   3. Make sure microphone is connected")
+        print(f"\n📝 Full log saved to: {log_file}")
