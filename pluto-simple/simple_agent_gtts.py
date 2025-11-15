@@ -1,43 +1,29 @@
 """
-🪐 Pluto Simple - Scenario-Based Voice Agent
-No LLM, just STT → Scenarios → TTS
+🪐 Pluto Simple - With Google TTS (NATURAL HUMAN VOICE)
+Much better voice quality than pyttsx3!
 
-Simple voice assistant with predefined conversation scenarios
+Requires internet connection for TTS
 """
 
 try:
     import speech_recognition as sr
 except ImportError:
     print("❌ ERROR: SpeechRecognition not installed!")
-    print("   Install with: pip3 install SpeechRecognition")
-    print("   Or run: sudo ./setup_pi.sh")
+    print("   Run: sudo ./setup_pi.sh")
     exit(1)
 
 try:
-    import pyttsx3
+    from gtts import gTTS
 except ImportError:
-    print("❌ ERROR: pyttsx3 not installed!")
-    print("   Install with: pip3 install pyttsx3")
-    print("   Or run: sudo ./setup_pi.sh")
+    print("❌ ERROR: gTTS not installed!")
+    print("   Run: chmod +x install_better_voice.sh && ./install_better_voice.sh")
     exit(1)
 
+import os
 import time
 
 class SimpleAgent:
     def __init__(self):
-        # Initialize TTS
-        self.tts = pyttsx3.init()
-        
-        # Make voice more natural and human-like
-        self.tts.setProperty('rate', 175)     # Speed (150-200 is natural, default was too slow)
-        self.tts.setProperty('volume', 1.0)   # Full volume
-        
-        # Try to use a better voice (female/male)
-        voices = self.tts.getProperty('voices')
-        if len(voices) > 1:
-            # Use second voice if available (often better quality)
-            self.tts.setProperty('voice', voices[1].id)
-        
         # Initialize STT
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
@@ -46,13 +32,23 @@ class SimpleAgent:
         self.state = "IDLE"
         self.name = "Pluto"
         
-        print("🪐 Pluto Simple Agent Initialized")
+        print("🪐 Pluto Simple Agent Initialized (Google TTS)")
     
     def speak(self, text):
-        """Text to speech"""
+        """Text to speech using Google TTS (natural voice!)"""
         print(f"🔊 Pluto: {text}")
-        self.tts.say(text)
-        self.tts.runAndWait()
+        try:
+            # Generate speech using Google TTS
+            tts = gTTS(text=text, lang='en', slow=False)
+            tts.save("/tmp/pluto_speech.mp3")
+            
+            # Play the audio
+            os.system("mpg123 -q /tmp/pluto_speech.mp3")
+            
+            # Clean up
+            os.remove("/tmp/pluto_speech.mp3")
+        except Exception as e:
+            print(f"❌ TTS Error: {e}")
     
     def listen(self):
         """Listen for voice input"""
@@ -138,7 +134,7 @@ class SimpleAgent:
     def run(self):
         """Main loop"""
         print("\n" + "="*60)
-        print("🪐 PLUTO SIMPLE AGENT - Scenario-Based Assistant")
+        print("🪐 PLUTO SIMPLE - Natural Voice Edition (Google TTS)")
         print("="*60)
         self.speak("Hello! Say 'Hey Pluto' to wake me up!")
         print("\n💡 Try saying: 'Hey Pluto', then ask me to introduce myself")

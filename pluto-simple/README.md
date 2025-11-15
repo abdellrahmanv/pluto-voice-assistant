@@ -17,6 +17,14 @@ chmod +x setup_pi.sh
 sudo ./setup_pi.sh
 python3 simple_agent.py
 ```
+
+**Want MUCH better, natural human voice?**
+```bash
+chmod +x install_better_voice.sh
+./install_better_voice.sh
+python3 simple_agent_gtts.py  # Uses Google TTS - sounds like a real person!
+```
+
 See [RASPBERRY_PI_SETUP.md](RASPBERRY_PI_SETUP.md) for details.
 
 ### For PC/Manual Install
