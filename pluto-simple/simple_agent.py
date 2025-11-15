@@ -22,10 +22,34 @@ except ImportError:
     exit(1)
 
 import time
+import sys
 
 class SimpleAgent:
     def __init__(self):
+        print("🔧 Checking audio devices...")
+        
+        # Check microphone
+        try:
+            import pyaudio
+            p = pyaudio.PyAudio()
+            mic_found = False
+            print("\n🎤 Available microphones:")
+            for i in range(p.get_device_count()):
+                info = p.get_device_info_by_index(i)
+                if info['maxInputChannels'] > 0:
+                    print(f"   [{i}] {info['name']}")
+                    mic_found = True
+            p.terminate()
+            
+            if not mic_found:
+                print("❌ No microphone detected!")
+                print("   Run: ./test_audio.sh for diagnostics")
+                sys.exit(1)
+        except Exception as e:
+            print(f"⚠️  Could not check microphones: {e}")
+        
         # Initialize TTS
+        print("\n🔊 Initializing text-to-speech...")
         self.tts = pyttsx3.init()
         
         # Make voice more natural and human-like
@@ -39,8 +63,16 @@ class SimpleAgent:
             self.tts.setProperty('voice', voices[1].id)
         
         # Initialize STT
+        print("🎙️ Initializing speech recognition...")
         self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
+        
+        try:
+            self.microphone = sr.Microphone()
+            print("✅ Audio system ready")
+        except Exception as e:
+            print(f"❌ Failed to initialize microphone: {e}")
+            print("\n💡 Run: chmod +x test_audio.sh && ./test_audio.sh")
+            sys.exit(1)
         
         # Scenario states
         self.state = "IDLE"

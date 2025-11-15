@@ -14,14 +14,66 @@ except ImportError:
 import subprocess
 import time
 import os
+import sys
 
 class SimpleAgent:
     def __init__(self):
-        # Initialize STT
-        self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
+        print("🔧 Checking audio devices...")
         
+        # Check microphone
+        try:
+            import pyaudio
+            p = pyaudio.PyAudio()
+            mic_found = False
+            print("\n🎤 Available microphones:")
+            for i in range(p.get_device_count()):
+                info = p.get_device_info_by_index(i)
+                if info['maxInputChannels'] > 0:
+                    print(f"   [{i}] {info['name']}")
+                    mic_found = True
+            p.terminate()
+            
+            if not mic_found:
+                print("❌ No microphone detected!")
+                print("   Please connect a microphone and restart")
+                sys.exit(1)
+        except Exception as e:
+            print(f"⚠️  Could not check microphones: {e}")
+        
+        # Check speakers
+        print("\n🔊 Testing speakers...")
+        try:
+            test_result = subprocess.run(
+                "aplay -l",
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            if "card" in test_result.stdout.lower():
+                print("✅ Speakers detected")
+            else:
+                print("⚠️  No audio output detected")
+                print("   Please check speaker connection")
+        except:
+            print("⚠️  Could not test speakers")
+        
+        # Initialize STT
+        print("\n🎙️ Initializing speech recognition...")
+        self.recognizer = sr.Recognizer()
+        
+        try:
+            self.microphone = sr.Microphone()
+            print("✅ Microphone initialized")
+        except Exception as e:
+            print(f"❌ Failed to initialize microphone: {e}")
+            print("\n💡 Try these fixes:")
+            print("   1. Check USB microphone connection")
+            print("   2. Run: arecord -l  (to list devices)")
+            print("   3. Run: sudo usermod -a -G audio $USER")
+            print("   4. Reboot and try again")
+            sys.exit(1)
         # Piper model path - check multiple locations
+        print("\n🤖 Looking for Piper TTS model...")
         possible_paths = [
             "../models/en_US-lessac-medium.onnx",  # In models/ directly
             "../models/piper/en_US-lessac-medium.onnx",  # In models/piper/
