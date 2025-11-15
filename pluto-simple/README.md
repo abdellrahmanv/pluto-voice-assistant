@@ -18,11 +18,17 @@ sudo ./setup_pi.sh
 python3 simple_agent.py
 ```
 
-**Want MUCH better, natural human voice?**
+**Want natural human voice OFFLINE? (Uses Piper from main Pluto)**
+```bash
+cd pluto-simple
+python3 simple_agent_piper.py  # Natural voice, no internet needed! ⭐
+```
+
+**Or use Google TTS (needs internet but very natural)**
 ```bash
 chmod +x install_better_voice.sh
 ./install_better_voice.sh
-python3 simple_agent_gtts.py  # Uses Google TTS - sounds like a real person!
+python3 simple_agent_gtts.py
 ```
 
 See [RASPBERRY_PI_SETUP.md](RASPBERRY_PI_SETUP.md) for details.
