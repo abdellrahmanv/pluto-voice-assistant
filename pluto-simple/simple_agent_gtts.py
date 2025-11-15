@@ -26,7 +26,15 @@ class SimpleAgent:
     def __init__(self):
         # Initialize STT
         self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
+        
+        # Use USB card 3 for microphone
+        try:
+            self.microphone = sr.Microphone(device_index=3)
+            print("🪐 Pluto Simple Agent Initialized (Google TTS, USB card 3)")
+        except Exception as e:
+            print(f"❌ Failed to initialize microphone on card 3: {e}")
+            print("   Run: ./test_audio.sh for diagnostics")
+            exit(1)
         
         # Scenario states
         self.state = "IDLE"
@@ -42,8 +50,8 @@ class SimpleAgent:
             tts = gTTS(text=text, lang='en', slow=False)
             tts.save("/tmp/pluto_speech.mp3")
             
-            # Play the audio
-            os.system("mpg123 -q /tmp/pluto_speech.mp3")
+            # Play the audio on USB card 3
+            os.system("mpg123 -q -a plughw:3,0 /tmp/pluto_speech.mp3")
             
             # Clean up
             os.remove("/tmp/pluto_speech.mp3")

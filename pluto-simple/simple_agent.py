@@ -67,10 +67,11 @@ class SimpleAgent:
         self.recognizer = sr.Recognizer()
         
         try:
-            self.microphone = sr.Microphone()
-            print("✅ Audio system ready")
+            # Use USB card 3 for microphone
+            self.microphone = sr.Microphone(device_index=3)
+            print("✅ Audio system ready (USB card 3)")
         except Exception as e:
-            print(f"❌ Failed to initialize microphone: {e}")
+            print(f"❌ Failed to initialize microphone on card 3: {e}")
             print("\n💡 Run: chmod +x test_audio.sh && ./test_audio.sh")
             sys.exit(1)
         

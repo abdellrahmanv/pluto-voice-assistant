@@ -1,8 +1,8 @@
 #!/bin/bash
-# Audio diagnostics for Raspberry Pi
+# Audio diagnostics for Raspberry Pi - USB Card 3
 
-echo "🔍 AUDIO DIAGNOSTICS"
-echo "===================="
+echo "🔍 AUDIO DIAGNOSTICS - USB CARD 3"
+echo "===================================="
 echo ""
 
 # Check microphone
@@ -15,28 +15,23 @@ echo "🔊 SPEAKER DEVICES:"
 aplay -l
 echo ""
 
-# Check ALSA
-echo "📊 ALSA MIXER:"
-amixer
-echo ""
-
-# Test microphone recording
-echo "🎙️ TESTING MICROPHONE (5 seconds)..."
+# Test microphone recording on card 3
+echo "🎙️ TESTING MICROPHONE on USB CARD 3 (5 seconds)..."
 echo "   Say something..."
-arecord -d 5 -f cd /tmp/test_mic.wav 2>/dev/null
+arecord -D plughw:3,0 -d 5 -f cd /tmp/test_mic.wav 2>/dev/null
 if [ -f /tmp/test_mic.wav ]; then
-    echo "✅ Microphone recording successful!"
+    echo "✅ Microphone recording successful on card 3!"
     
-    # Test playback
+    # Test playback on card 3
     echo ""
-    echo "🔊 TESTING SPEAKER PLAYBACK..."
+    echo "🔊 TESTING SPEAKER PLAYBACK on USB CARD 3..."
     echo "   You should hear your recording..."
-    aplay /tmp/test_mic.wav
-    echo "✅ Speaker playback complete!"
+    aplay -D plughw:3,0 /tmp/test_mic.wav
+    echo "✅ Speaker playback complete on card 3!"
     
     rm /tmp/test_mic.wav
 else
-    echo "❌ Microphone test failed!"
+    echo "❌ Microphone test failed on card 3!"
 fi
 
 echo ""

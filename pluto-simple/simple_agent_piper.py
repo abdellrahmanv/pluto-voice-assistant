@@ -62,10 +62,11 @@ class SimpleAgent:
         self.recognizer = sr.Recognizer()
         
         try:
-            self.microphone = sr.Microphone()
-            print("✅ Microphone initialized")
+            # Use USB card 3 for microphone
+            self.microphone = sr.Microphone(device_index=3)
+            print("✅ Microphone initialized (USB card 3)")
         except Exception as e:
-            print(f"❌ Failed to initialize microphone: {e}")
+            print(f"❌ Failed to initialize microphone on card 3: {e}")
             print("\n💡 Try these fixes:")
             print("   1. Check USB microphone connection")
             print("   2. Run: arecord -l  (to list devices)")
@@ -108,12 +109,12 @@ class SimpleAgent:
         """Text to speech using Piper (natural offline voice!)"""
         print(f"🔊 Pluto: {text}")
         try:
-            # Use Piper TTS (same as full Pluto)
-            cmd = f'echo "{text}" | piper --model {self.piper_model} --output-raw | aplay -r 22050 -f S16_LE -t raw -'
+            # Use Piper TTS with USB card 3 for output
+            cmd = f'echo "{text}" | piper --model {self.piper_model} --output-raw | aplay -D plughw:3,0 -r 22050 -f S16_LE -t raw -'
             subprocess.run(cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"❌ TTS Error: {e}")
-            print("   Make sure Piper is installed and model exists")
+            print("   Make sure Piper is installed and USB speakers on card 3 work")
     
     def listen(self):
         """Listen for voice input"""
