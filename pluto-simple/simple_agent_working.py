@@ -44,54 +44,36 @@ class SimpleAgent:
         return "en_US-lessac-medium.onnx"  # Try system-wide
     
     def find_microphone(self):
-        """Find a working microphone automatically"""
-        print("🎤 Looking for microphone...")
+        """Lock to USB card 3 for microphone"""
+        print("🎤 Initializing USB card 3 for microphone...")
         
         try:
-            import pyaudio
-            p = pyaudio.PyAudio()
-            
-            # List all devices first
-            device_found = False
-            for i in range(p.get_device_count()):
-                try:
-                    info = p.get_device_info_by_index(i)
-                    if info['maxInputChannels'] > 0:
-                        print(f"   Found: [{i}] {info['name']}")
-                        if not device_found:
-                            # Use the first input device found
-                            self.microphone = sr.Microphone(device_index=i)
-                            print(f"✅ Using: [{i}] {info['name']}")
-                            device_found = True
-                except Exception as e:
-                    continue
-            
-            p.terminate()
-            
-            if not device_found:
-                print("⚠️  No input devices found, using default")
-                self.microphone = sr.Microphone()
+            # LOCK TO USB CARD 3 - Microphone
+            self.microphone = sr.Microphone(device_index=3)
+            print("✅ Microphone locked to USB card 3")
                 
         except Exception as e:
-            print(f"⚠️  PyAudio error: {e}, using default microphone")
+            print(f"❌ Failed to initialize USB card 3: {e}")
+            print("   Make sure your USB microphone is connected to card 3")
+            # Fallback but still try to initialize
             self.microphone = sr.Microphone()
     
     def speak(self, text):
-        """Speak using Piper"""
+        """Speak using Piper on USB card 3 speakers"""
         print(f"🔊 Pluto: {text}")
         
         try:
-            # Try with Piper
-            cmd = f'echo "{text}" | piper --model {self.piper_model} --output-raw | aplay -r 22050 -f S16_LE -t raw - 2>/dev/null'
+            # Use Piper with USB card 3 for audio output
+            cmd = f'echo "{text}" | piper --model {self.piper_model} --output-raw | aplay -D plughw:3,0 -r 22050 -f S16_LE -t raw - 2>/dev/null'
             result = subprocess.run(cmd, shell=True, timeout=10)
             
             if result.returncode != 0:
-                # Fallback to espeak
-                subprocess.run(f'espeak "{text}"', shell=True)
+                # Fallback to espeak on USB card 3
+                subprocess.run(f'espeak "{text}" --stdout | aplay -D plughw:3,0 2>/dev/null', shell=True)
         except:
             # Last resort fallback
             try:
-                subprocess.run(f'espeak "{text}"', shell=True)
+                subprocess.run(f'espeak "{text}" --stdout | aplay -D plughw:3,0 2>/dev/null', shell=True)
             except:
                 print("   (TTS unavailable)")
     
