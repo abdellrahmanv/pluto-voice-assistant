@@ -21,30 +21,30 @@ class SimpleAgent:
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
         
-        # Piper model path (same as full Pluto)
-        self.piper_model = "models/piper/en_US-lessac-medium.onnx"
+        # Piper model path - check multiple locations
+        possible_paths = [
+            "../models/en_US-lessac-medium.onnx",  # In models/ directly
+            "../models/piper/en_US-lessac-medium.onnx",  # In models/piper/
+            "models/en_US-lessac-medium.onnx",
+            "models/piper/en_US-lessac-medium.onnx",
+            os.path.expanduser("~/.local/share/piper/voices/en_US-lessac-medium.onnx"),
+            "en_US-lessac-medium.onnx"
+        ]
         
-        # Check if Piper model exists
-        if not os.path.exists(self.piper_model):
-            print("⚠️  Piper model not found at:", self.piper_model)
-            print("   Trying alternative locations...")
-            
-            # Try alternative paths
-            alt_paths = [
-                os.path.expanduser("~/.local/share/piper/voices/en_US-lessac-medium.onnx"),
-                "../models/piper/en_US-lessac-medium.onnx",
-                "en_US-lessac-medium.onnx"
-            ]
-            
-            for path in alt_paths:
-                if os.path.exists(path):
-                    self.piper_model = path
-                    print(f"✅ Found Piper model at: {path}")
-                    break
-            else:
-                print("❌ Could not find Piper model!")
-                print("   Run full Pluto setup first, or place model in models/piper/")
-                exit(1)
+        self.piper_model = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                self.piper_model = path
+                print(f"✅ Found Piper model at: {path}")
+                break
+        
+        if not self.piper_model:
+            print("❌ Could not find Piper model!")
+            print("   Looked in:")
+            for path in possible_paths:
+                print(f"     - {path}")
+            print("\n   Make sure you have Piper model from main Pluto!")
+            exit(1)
         
         # Scenario states
         self.state = "IDLE"
